@@ -1,0 +1,2506 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leger PJOK SD Kelas 1-6 - Google Apps Script Integration</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX) for Excel Export/Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- html2pdf.js CDN for PDF Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Times+New+Roman&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* ===== Dashboard analitik (token warna dari palet dataviz) ===== */
+        .viz { --v-surface:#fcfcfb; --v-ink:#0b0b0b; --v-ink2:#52514e; --v-muted:#898781; --v-grid:#e1e0d9; --v-base:#c3c2b7; --v-s1:#2a78d6; --v-s2:#eb6834; --v-track:#f0efec; --v-warn:#d03b3b; }
+        .viz-card { background: var(--v-surface); border: 1px solid rgba(11,11,11,.10); border-radius: 1rem; padding: 1.25rem; }
+        .viz-mark { transition: filter .12s ease, opacity .12s ease; }
+        .viz-row:hover .viz-mark, .viz-row:focus-visible .viz-mark, .viz-cell:hover, .viz-cell:focus-visible { filter: brightness(1.12) saturate(1.05); }
+        .viz-row:focus-visible, .viz-cell:focus-visible { outline: 2px solid var(--v-ink); outline-offset: 2px; border-radius: 6px; }
+        @media (prefers-reduced-motion: reduce) { .viz-mark { transition: none; } }
+
+        /* ===== Modern Toast Notifications ===== */
+        .toast-enter-active { transition: all .35s cubic-bezier(.21,1.02,.73,1); }
+        .toast-leave-active { transition: all .25s ease-in; position: absolute; right: 0; left: 0; }
+        .toast-enter-from { opacity: 0; transform: translateX(40px) scale(.95); }
+        .toast-leave-to { opacity: 0; transform: translateX(40px) scale(.95); }
+        .toast-move { transition: transform .3s ease; }
+        .fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        @keyframes toast-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+        .toast-bar { transform-origin: left; animation-name: toast-progress; animation-timing-function: linear; animation-fill-mode: forwards; }
+        .toast-card:hover .toast-bar { animation-play-state: paused; }
+        @keyframes bell-ring { 0%,100% { transform: rotate(0); } 20% { transform: rotate(14deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-5deg); } }
+        .bell-ring { animation: bell-ring .7s ease; }
+        @media (prefers-reduced-motion: reduce) {
+            .toast-enter-active, .toast-leave-active, .toast-move { transition: none; }
+            .bell-ring { animation: none; }
+        }
+
+        /* Isolated Media Print CSS - Only Prints #official-pdf-content */
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #official-pdf-content, #official-pdf-content * {
+                visibility: visible !important;
+            }
+            #official-pdf-content {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            table.official-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            table.official-table th, 
+            table.official-table td {
+                border: 1px solid #000000 !important;
+                padding: 3px 5px !important;
+                font-size: 8.5pt !important;
+            }
+            table.official-table th {
+                background-color: #f2f2f2 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .kop-border {
+                border-bottom: 3px solid #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen">
+
+    <div id="app" class="flex flex-col min-h-screen">
+
+        <div class="no-print flex flex-col md:flex-row min-h-screen">
+            
+            <!-- SIDEBAR NAVIGATION -->
+            <aside class="w-full md:w-72 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col justify-between border-r border-slate-800 md:sticky md:top-0 md:h-screen md:overflow-y-auto">
+                <div>
+                    <!-- App Logo & Title -->
+                    <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/20">
+                            <i class="fa-solid fa-volleyball"></i>
+                        </div>
+                        <div>
+                            <h1 class="font-bold text-white text-base leading-tight">Leger PJOK SD</h1>
+                            <p class="text-xs text-slate-400">Kurikulum Merdeka</p>
+                        </div>
+                    </div>
+
+                    <!-- Mata Pelajaran Selector Section (Sidebar) -->
+                    <div class="p-4">
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-2">Pilih Kelas</label>
+                        <div class="space-y-1">
+                            <button v-for="(m, i) in kelasList" :key="m.id"
+                                    @click="selectKelas(m.id)"
+                                    :class="activeKelas === m.id && activeTab === 'leger' ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-900/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'"
+                                    class="group w-full text-left px-3 py-1.5 rounded-xl text-sm transition-all flex items-center justify-between gap-2">
+                                <span class="flex items-center gap-3 min-w-0">
+                                    <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-colors shrink-0" :class="kelasBadge(i, m.id)">
+                                        <i :class="m.icon"></i>
+                                    </span>
+                                    <span class="font-medium truncate" :title="m.name">{{ m.name }}</span>
+                                </span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-300 font-semibold shrink-0" :class="{'bg-emerald-700 text-white': activeKelas === m.id && activeTab === 'leger'}" title="Jumlah siswa">
+                                    {{ countStudentsByClass(m.id) }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Semester Selector -->
+                    <div class="px-4 py-2 border-t border-slate-800/80">
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-2">Semester</label>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl">
+                            <button @click="activeSemester = 'Ganjil (1)'" 
+                                    :class="activeSemester === 'Ganjil (1)' ? 'bg-emerald-600 text-white font-medium' : 'text-slate-400 hover:text-white'"
+                                    class="py-1.5 rounded-lg text-xs text-center transition">
+                                Sem 1
+                            </button>
+                            <button @click="activeSemester = 'Genap (2)'" 
+                                    :class="activeSemester === 'Genap (2)' ? 'bg-emerald-600 text-white font-medium' : 'text-slate-400 hover:text-white'"
+                                    class="py-1.5 rounded-lg text-xs text-center transition">
+                                Sem 2
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Main Navigation Menu -->
+                    <div class="p-4 border-t border-slate-800/80 space-y-1">
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2 px-2">Menu Utama</label>
+                        <button @click="activeTab = 'leger'" :class="activeTab === 'leger' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'" class="w-full text-left px-3 py-2 rounded-xl text-sm transition flex items-center gap-3">
+                            <i class="fa-solid fa-table-list w-4"></i> Leger Penilaian
+                        </button>
+                        <button @click="activeTab = 'rekap'" :class="activeTab === 'rekap' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'" class="w-full text-left px-3 py-2 rounded-xl text-sm transition flex items-center gap-3">
+                            <i class="fa-solid fa-table-cells w-4"></i> Rekap Semua Kelas
+                        </button>
+                        <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'" class="w-full text-left px-3 py-2 rounded-xl text-sm transition flex items-center gap-3">
+                            <i class="fa-solid fa-chart-pie w-4"></i> Analitik & Grafik
+                        </button>
+                        <button @click="activeTab = 'gas'" :class="activeTab === 'gas' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'" class="w-full text-left px-3 py-2 rounded-xl text-sm transition flex items-center gap-3">
+                            <i class="fa-solid fa-cloud-arrow-up w-4"></i> Sync Google Sheets
+                        </button>
+                        <button @click="activeTab = 'excel'" :class="activeTab === 'excel' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'" class="w-full text-left px-3 py-2 rounded-xl text-sm transition flex items-center gap-3">
+                            <i class="fa-solid fa-file-excel w-4"></i> Import/Export Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Footer Quick Actions -->
+                <div class="p-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between items-center">
+                    <span>Leger PJOK SD v5.0</span>
+                    <button @click="showSettingsKopModal = true" title="Pengaturan Kop & TTD Official" class="text-slate-400 hover:text-emerald-400 transition">
+                        <i class="fa-solid fa-gear text-sm"></i>
+                    </button>
+                </div>
+            </aside>
+
+            <main class="flex-1 overflow-y-auto flex flex-col">
+                
+                <!-- TOP HEADER BAR -->
+                <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-20 shadow-sm">
+                    <div>
+                        <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 uppercase tracking-wider">
+                            <span class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                <i :class="activeTab === 'leger' ? activeKelasObj.icon : 'fa-solid fa-layer-group'"></i> {{ activeTab === 'leger' ? activeKelasObj.name : 'Semua Kelas' }} • PJOK
+                            </span>
+                            <span>•</span>
+                            <span>Semester {{ activeSemester }}</span>
+                            <span>•</span>
+                            <span>TA {{ filter.tahunAjaran }}</span>
+                        </div>
+                        <h2 class="text-xl font-extrabold text-slate-800">
+                            {{ activeTab === 'leger' ? 'Leger Penilaian PJOK ' + activeKelasObj.name : activeTab === 'rekap' ? 'Rekapitulasi Nilai Akhir PJOK Seluruh Kelas' : activeTab === 'dashboard' ? 'Dashboard Analitik PJOK Seluruh Kelas' : activeTab === 'gas' ? 'Integrasi Google Apps Script (Per Sheet Kelas)' : 'Import & Export Excel' }}
+                        </h2>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Notification Center (Riwayat Perubahan) -->
+                        <div class="relative">
+                            <button @click="toggleLogPanel" aria-label="Riwayat perubahan data" title="Riwayat perubahan data"
+                                    class="relative w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition flex items-center justify-center">
+                                <i class="fa-solid fa-bell" :class="{'bell-ring': bellRinging}"></i>
+                                <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+                            </button>
+                            <div v-if="showLogPanel" @click="showLogPanel = false" class="fixed inset-0 z-30"></div>
+                            <div v-if="showLogPanel" class="absolute right-0 top-full mt-2 w-80 max-w-[85vw] bg-white border border-slate-200 rounded-2xl shadow-2xl z-40 overflow-hidden">
+                                <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                                    <h4 class="text-xs font-extrabold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Riwayat Perubahan</h4>
+                                    <button v-if="activityLog.length" @click="activityLog = []" class="text-[10px] font-semibold text-slate-400 hover:text-rose-600 transition">Bersihkan</button>
+                                </div>
+                                <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                                    <div v-for="item in activityLog" :key="item.id" class="flex items-start gap-3 px-4 py-2.5">
+                                        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs" :class="toastStyle(item.type).icon"><i :class="toastStyle(item.type).fa"></i></div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-xs font-bold text-slate-700 leading-tight">{{ item.title }}</p>
+                                            <p class="text-[11px] text-slate-500 leading-snug break-words">{{ item.message }}</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">{{ item.time }}</p>
+                                        </div>
+                                    </div>
+                                    <div v-if="activityLog.length === 0" class="px-4 py-8 text-center text-xs text-slate-400">
+                                        <i class="fa-regular fa-bell-slash text-2xl mb-2 block"></i>
+                                        Belum ada perubahan data.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button @click="showBobotModal = true" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders text-emerald-600"></i> Atur Bobot
+                        </button>
+                        <button @click="showSettingsKopModal = true" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-signature text-amber-600"></i> Kop & TTD Resmi
+                        </button>
+                        <button @click="openPreview()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-2">
+                            <i class="fa-solid fa-file-pdf"></i> Preview & Cetak PDF
+                        </button>
+                    </div>
+                </header>
+
+                <!-- PAGE CONTENTS -->
+                <div class="p-6 space-y-6 flex-1">
+
+                    <div v-if="activeTab === 'leger'" class="space-y-4">
+                        
+                        <!-- Table Toolbar & Interactive Search -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative">
+                            <div class="flex items-center gap-3">
+                                <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-lg">
+                                    Total: {{ currentClassStudents.length }} Siswa
+                                </span>
+                                <p class="text-xs text-slate-500">
+                                    Sheet: <b class="text-emerald-700">{{ activeKelasObj.name }}</b> • Bobot: TP <b>({{ bobot.tp }}%)</b> • TS <b>({{ bobot.ts }}%)</b> • NP <b>({{ bobot.np }}%)</b> • STS <b>({{ bobot.sts }}%)</b> • SAS <b>({{ bobot.sas }}%)</b>
+                                    • <label class="inline-flex items-center gap-1 font-bold text-slate-700">KKM <input type="number" min="0" max="100" v-model.number="activeKelasObj.kkm" aria-label="KKM mata pelajaran ini" class="w-14 text-center bg-amber-50 border border-amber-300 focus:border-amber-500 rounded-md py-0.5 text-xs outline-none"></label>
+                                </p>
+                            </div>
+
+                            <!-- Search Input with Live Dropdown Suggestions -->
+                            <div class="flex items-center gap-2 w-full sm:w-auto relative">
+                                <div class="relative w-full sm:w-64">
+                                    <input type="text" 
+                                           v-model="searchQuery" 
+                                           @focus="isSearchFocused = true"
+                                           placeholder="Cari nama / NISN..." 
+                                           class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl pl-8 pr-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                                    <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                    </button>
+
+                                    <!-- Quick Search Dropdown Suggestions -->
+                                    <div v-if="searchQuery && isSearchFocused" 
+                                         class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 max-h-60 overflow-y-auto divide-y divide-slate-100">
+                                        <div v-for="student in globalSearchResults" 
+                                             :key="student.id"
+                                             @mousedown="openEditStudentModal(student)"
+                                             class="p-2.5 hover:bg-emerald-50 cursor-pointer transition flex items-center justify-between group">
+                                            <div>
+                                                <p class="text-xs font-bold text-slate-800 group-hover:text-emerald-700 flex items-center gap-2">
+                                                    {{ student.name }}
+                                                    <span class="text-[10px] bg-slate-100 group-hover:bg-emerald-100 text-slate-600 group-hover:text-emerald-800 px-1.5 py-0.5 rounded font-normal">
+                                                        {{ activeKelas }}
+                                                    </span>
+                                                </p>
+                                                <p class="text-[10px] text-slate-400">NISN: {{ student.nisn }} • NA: <b class="text-slate-700">{{ calculateNA(student) }}</b></p>
+                                            </div>
+                                            <span class="text-[10px] bg-emerald-600 text-white font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                                            </span>
+                                        </div>
+                                        <div v-if="globalSearchResults.length === 0" class="p-3 text-center text-xs text-slate-400">
+                                            Tidak ada siswa yang cocok dengan "{{ searchQuery }}"
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button @click="addNewStudent" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded-xl font-medium transition flex items-center gap-1.5 shrink-0">
+                                    <i class="fa-solid fa-user-plus text-emerald-400"></i> Tambah Siswa
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Peringatan data ganda -->
+                        <div v-if="duplicateGroups.length" class="no-print flex flex-col sm:flex-row sm:items-center gap-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl px-4 py-3" role="alert">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
+                            <p class="text-xs leading-snug flex-1"><b>{{ duplicateGroups.length }} siswa terdeteksi ganda</b> pada {{ activeSemester }} (nama atau NISN sama): {{ duplicateGroups.slice(0, 3).map(g => g[0].name).join(', ') }}{{ duplicateGroups.length > 3 ? ', …' : '' }}</p>
+                            <button @click="mergeDuplicates" class="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Gabungkan Data Ganda</button>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-100/80 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
+                                            <th class="p-3 w-10 text-center">No</th>
+                                            <th class="p-3 min-w-[100px]">NISN</th>
+                                            <th class="p-3 min-w-[200px]">
+                                                Nama Siswa <span class="text-[10px] font-normal text-emerald-600">(Klik untuk Edit)</span>
+                                            </th>
+                                            <th class="p-3 w-12 text-center">L/P</th>
+                                            
+                                            <!-- TP 1-4 -->
+                                            <th v-if="bobot.tp > 0" v-for="i in 4" :key="'tp'+i" class="p-2 text-center border-l border-slate-200 bg-blue-50/40 min-w-[55px]">
+                                                TP {{ i }}
+                                            </th>
+                                            <!-- TS 1-4 -->
+                                            <th v-if="bobot.ts > 0" v-for="i in 4" :key="'ts'+i" class="p-2 text-center border-l border-slate-200 bg-amber-50/40 min-w-[55px]">
+                                                TS {{ i }}
+                                            </th>
+                                            <!-- NP 1-4 -->
+                                            <th v-if="bobot.np > 0" v-for="i in 4" :key="'np'+i" class="p-2 text-center border-l border-slate-200 bg-emerald-50/40 min-w-[55px]">
+                                                NP {{ i }}
+                                            </th>
+                                            <!-- STS & SAS -->
+                                            <th v-if="bobot.sts > 0" class="p-2 text-center border-l border-slate-200 bg-purple-50/40 min-w-[60px]">STS</th>
+                                            <th v-if="bobot.sas > 0" class="p-2 text-center border-l border-slate-200 bg-rose-50/40 min-w-[60px]">SAS</th>
+                                            
+                                            <th class="p-3 text-center border-l border-slate-200 bg-slate-200 text-slate-800 font-bold min-w-[65px]">NA</th>
+                                            <th class="p-3 text-center min-w-[45px]">Pred</th>
+                                            <th class="p-3 min-w-[200px]">Catatan / Deskripsi Capaian</th>
+                                            <th class="p-3 text-center w-16">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200">
+                                        <tr v-for="(student, index) in filteredStudents" :key="student.id" class="hover:bg-slate-50/80 transition">
+                                            <td class="p-3 text-center font-medium text-slate-400">{{ index + 1 }}</td>
+                                            <td class="p-1.5">
+                                                <input type="text" v-model="student.nisn" @blur="handleAutoUpsert(student)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-1.5 py-1 text-xs outline-none font-mono">
+                                            </td>
+                                            
+                                            <!-- Clickable Student Name to Open Edit Modal -->
+                                            <td class="p-1.5">
+                                                <div class="flex items-center justify-between group cursor-pointer p-1 rounded-lg hover:bg-emerald-50/80 transition" @click="openEditStudentModal(student)">
+                                                    <span class="font-bold text-slate-800 group-hover:text-emerald-700 underline decoration-slate-300 decoration-dashed underline-offset-4">
+                                                        {{ student.name }}
+                                                    </span>
+                                                    <i class="fa-solid fa-pen-to-square text-slate-300 group-hover:text-emerald-600 text-xs opacity-0 group-hover:opacity-100 transition ml-2"></i>
+                                                </div>
+                                            </td>
+
+                                            <td class="p-1.5 text-center">
+                                                <select v-model="student.gender" class="bg-transparent border border-slate-200 rounded px-1 py-1 text-xs">
+                                                    <option value="L">L</option>
+                                                    <option value="P">P</option>
+                                                </select>
+                                            </td>
+
+                                            <!-- Scores TP 1-4 -->
+                                            <td v-if="bobot.tp > 0" v-for="i in 4" :key="'tp_in_'+i" class="p-1 border-l border-slate-100 text-center">
+                                                <input type="number" min="0" max="100" v-model.number="sc(student)['tp'+i]" placeholder="-" class="w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded py-1 text-xs outline-none">
+                                            </td>
+                                            <!-- Scores TS 1-4 -->
+                                            <td v-if="bobot.ts > 0" v-for="i in 4" :key="'ts_in_'+i" class="p-1 border-l border-slate-100 text-center">
+                                                <input type="number" min="0" max="100" v-model.number="sc(student)['ts'+i]" placeholder="-" class="w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded py-1 text-xs outline-none">
+                                            </td>
+                                            <!-- Scores NP 1-4 -->
+                                            <td v-if="bobot.np > 0" v-for="i in 4" :key="'np_in_'+i" class="p-1 border-l border-slate-100 text-center">
+                                                <input type="number" min="0" max="100" v-model.number="sc(student)['np'+i]" placeholder="-" class="w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded py-1 text-xs outline-none">
+                                            </td>
+                                            <!-- Scores STS & SAS -->
+                                            <td v-if="bobot.sts > 0" class="p-1 border-l border-slate-100 text-center">
+                                                <input type="number" min="0" max="100" v-model.number="sc(student).sts" placeholder="-" class="w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded py-1 text-xs outline-none font-semibold">
+                                            </td>
+                                            <td v-if="bobot.sas > 0" class="p-1 border-l border-slate-100 text-center">
+                                                <input type="number" min="0" max="100" v-model.number="sc(student).sas" placeholder="-" class="w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded py-1 text-xs outline-none font-semibold">
+                                            </td>
+
+                                            <!-- Computed NA & Predicate -->
+                                            <td class="p-3 text-center font-bold text-slate-900 border-l border-slate-200 bg-slate-50">
+                                                {{ calculateNA(student) }}
+                                            </td>
+                                            <td class="p-3 text-center font-bold" :class="getPredicateClass(calculateNA(student))">
+                                                {{ getPredicate(calculateNA(student)) }}
+                                            </td>
+                                            <td class="p-1.5">
+                                                <input type="text" v-model="nl(student).catatan" :placeholder="generateAutoNote(student)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded px-1.5 py-1 text-xs text-slate-600 outline-none">
+                                            </td>
+                                            <td class="p-3 text-center flex items-center justify-center gap-2">
+                                                <button @click="openEditStudentModal(student)" class="text-slate-400 hover:text-emerald-600 transition" title="Edit Lengkap Siswa">
+                                                    <i class="fa-solid fa-user-pen"></i>
+                                                </button>
+                                                <button @click="requestDeleteStudent(student)" class="text-slate-400 hover:text-rose-600 transition" title="Hapus Siswa">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="filteredStudents.length === 0">
+                                            <td colspan="20" class="p-10 text-center text-slate-400">
+                                                <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                                                Belum ada data siswa untuk {{ activeKelas }} ({{ activeSemester }}).
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="activeTab === 'dashboard'" class="viz space-y-5">
+
+                        <!-- Filter row (satu baris, di atas semua grafik) -->
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-semibold text-slate-500">Urutkan kelas</span>
+                                <div class="flex bg-slate-100 rounded-xl p-0.5 text-xs font-bold" role="group" aria-label="Urutan mata pelajaran">
+                                    <button @click="dashSort = 'kurikulum'" :aria-pressed="dashSort === 'kurikulum'" :class="dashSort === 'kurikulum' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">Urutan kurikulum</button>
+                                    <button @click="dashSort = 'tinggi'" :aria-pressed="dashSort === 'tinggi'" :class="dashSort === 'tinggi' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">Nilai tertinggi</button>
+                                    <button @click="dashSort = 'rendah'" :aria-pressed="dashSort === 'rendah'" :class="dashSort === 'rendah' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">Nilai terendah</button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500">Semester {{ activeSemester }} • {{ semesterStudents.length }} siswa di {{ kelasList.length }} kelas • KKM &amp; bobot diatur terpisah untuk tiap kelas</p>
+                            <button @click="activeTab = 'rekap'" class="ml-auto text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-xl transition flex items-center gap-2">
+                                <i class="fa-solid fa-table-cells"></i> Lihat sebagai tabel
+                            </button>
+                        </div>
+
+                        <div v-if="semesterStudents.length === 0" class="viz-card text-center text-sm text-slate-500 py-12">
+                            <i class="fa-solid fa-chart-column text-3xl mb-3 block text-slate-300"></i>
+                            Belum ada data siswa untuk {{ activeSemester }}. Tambahkan siswa dan nilai agar grafik muncul.
+                        </div>
+
+                        <template v-else>
+                        <!-- KPI row -->
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                            <div class="viz-card col-span-2 flex flex-col justify-between">
+                                <p class="text-xs font-semibold text-slate-500">Rata-rata nilai akhir PJOK seluruh kelas</p>
+                                <p class="font-extrabold leading-none mt-3" style="font-size: 56px; color: var(--v-ink);">{{ classOverallAverage === null ? '-' : classOverallAverage }}</p>
+                                <p class="text-xs text-slate-500 mt-3">{{ dashStats.kelasTerisi }} dari {{ kelasList.length }} kelas sudah memiliki nilai</p>
+                            </div>
+                            <div class="viz-card flex flex-col justify-between">
+                                <p class="text-xs font-semibold text-slate-500">Ketuntasan keseluruhan</p>
+                                <p class="text-3xl font-extrabold mt-2" style="color: var(--v-ink);">{{ dashStats.tuntasPct === null ? '-' : dashStats.tuntasPct + '%' }}</p>
+                                <div>
+                                    <div class="h-1.5 rounded-full mt-3 overflow-hidden" style="background:#cde2fb;" role="img" :aria-label="'Ketuntasan ' + (dashStats.tuntasPct || 0) + ' persen'"><div class="h-full rounded-full" :style="{ width: (dashStats.tuntasPct || 0) + '%', background: 'var(--v-s1)' }"></div></div>
+                                    <p class="text-[11px] text-slate-500 mt-2">{{ dashStats.tuntasN }} dari {{ dashStats.entriesN }} siswa mencapai KKM kelasnya</p>
+                                </div>
+                            </div>
+                            <div class="viz-card flex flex-col justify-between">
+                                <p class="text-xs font-semibold text-slate-500">Kelas tertinggi</p>
+                                <p class="text-3xl font-extrabold mt-2" style="color: var(--v-ink);">{{ dashStats.best ? fmt(dashStats.best.avg) : '-' }}</p>
+                                <p class="text-[11px] text-slate-500 mt-3 truncate" :title="dashStats.best ? dashStats.best.m.name : ''">{{ dashStats.best ? dashStats.best.m.name : 'Belum ada nilai' }}</p>
+                            </div>
+                            <div class="viz-card flex flex-col justify-between">
+                                <p class="text-xs font-semibold text-slate-500">Kelas terendah</p>
+                                <p class="text-3xl font-extrabold mt-2" style="color: var(--v-ink);">{{ dashStats.worst ? fmt(dashStats.worst.avg) : '-' }}</p>
+                                <p class="text-[11px] mt-3 truncate" :title="dashStats.worst ? dashStats.worst.m.name : ''" style="color: var(--v-ink2);">
+                                    <i v-if="dashStats.worst && dashStats.worst.avg < kkmOf(dashStats.worst.m.id)" class="fa-solid fa-triangle-exclamation mr-1" style="color: #fab219;"></i>{{ dashStats.worst ? dashStats.worst.m.name : 'Belum ada nilai' }}<span v-if="dashStats.worst && dashStats.worst.avg < kkmOf(dashStats.worst.m.id)"> • di bawah KKM</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                            <!-- Grafik 1: rata-rata per mapel -->
+                            <section class="viz-card" aria-labelledby="viz-t1">
+                                <h3 id="viz-t1" class="text-sm font-extrabold text-slate-800">Rata-rata nilai per kelas</h3>
+                                <p class="text-xs text-slate-500 mt-0.5 mb-4">Nilai akhir (NA) rata-rata semua siswa. Klik batang untuk membuka leger kelas.</p>
+                                <div class="relative" style="--lw: 10.5rem; --vw: 3.25rem;">
+                                    <!-- gridline & garis KKM -->
+                                    <div class="absolute top-5 bottom-6 pointer-events-none" style="left: var(--lw); right: var(--vw);">
+                                        <div v-for="g in [0, 25, 50, 100]" :key="g" class="absolute top-0 bottom-0" :style="{ left: g + '%', borderLeft: '1px solid ' + (g === 0 ? 'var(--v-base)' : 'var(--v-grid)') }"></div>
+                                    </div>
+                                    <div class="relative h-5" aria-hidden="true">
+                                        <span class="absolute text-[10px] font-semibold whitespace-nowrap" style="left: var(--lw); color: var(--v-ink2);">Garis tegak pada tiap batang = KKM kelas</span>
+                                    </div>
+                                    <button v-for="r in dashRowsSorted" :key="r.m.id" type="button"
+                                            @click="selectKelas(r.m.id)"
+                                            @mousemove="showTip($event, tipAvg(r))" @mouseleave="hideTip" @focus="showTip($event, tipAvg(r))" @blur="hideTip"
+                                            class="viz-row relative w-full flex items-center text-left py-[3px]">
+                                        <span class="shrink-0 pr-3 text-xs truncate" style="width: var(--lw); color: var(--v-ink2);">{{ r.m.name }}</span>
+                                        <span class="relative flex-1 h-5 block">
+                                            <span class="absolute pointer-events-none" :style="{ left: kkmOf(r.m.id) + '%', top: '-3px', bottom: '-3px', borderLeft: '2px solid var(--v-ink2)' }" :title="'KKM ' + kkmOf(r.m.id)"></span>
+                                            <span v-if="r.avg !== null" class="viz-mark absolute left-0 top-0 h-5 block" :style="{ width: Math.min(r.avg, 100) + '%', background: 'var(--v-s1)', borderRadius: '0 4px 4px 0' }"></span>
+                                            <span class="absolute top-0 h-5 flex items-center text-xs font-bold whitespace-nowrap" :style="{ left: 'calc(' + (r.avg === null ? 0 : Math.min(r.avg, 100)) + '% + 6px)', color: r.avg === null ? 'var(--v-muted)' : 'var(--v-ink)' }">{{ r.avg === null ? 'belum ada nilai' : fmt(r.avg) }}</span>
+                                        </span>
+                                        <span class="shrink-0" style="width: var(--vw);"></span>
+                                    </button>
+                                    <div class="relative h-6 mt-1" aria-hidden="true">
+                                        <div class="absolute top-0 bottom-0" style="left: var(--lw); right: var(--vw);">
+                                            <span v-for="g in [0, 25, 50, 75, 100]" :key="g" class="absolute top-1 text-[10px] -translate-x-1/2" :style="{ left: g + '%', color: 'var(--v-muted)' }">{{ g }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Grafik 2: ketuntasan per mapel -->
+                            <section class="viz-card" aria-labelledby="viz-t2">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <h3 id="viz-t2" class="text-sm font-extrabold text-slate-800">Ketuntasan per kelas</h3>
+                                        <p class="text-xs text-slate-500 mt-0.5 mb-4">Jumlah siswa yang mencapai KKM kelasnya dibanding yang belum.</p>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-xs" style="color: var(--v-ink2);">
+                                        <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm" style="background: var(--v-s1);"></span> Tuntas</span>
+                                        <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm" style="background: var(--v-s2);"></span> Belum tuntas</span>
+                                    </div>
+                                </div>
+                                <div style="--lw: 10.5rem; --vw: 3.25rem;">
+                                    <button v-for="r in dashRowsSorted" :key="r.m.id" type="button"
+                                            @click="selectKelas(r.m.id)"
+                                            @mousemove="showTip($event, tipTuntas(r))" @mouseleave="hideTip" @focus="showTip($event, tipTuntas(r))" @blur="hideTip"
+                                            class="viz-row w-full flex items-center text-left py-[3px]">
+                                        <span class="shrink-0 pr-3 text-xs truncate" style="width: var(--lw); color: var(--v-ink2);">{{ r.m.name }}</span>
+                                        <span class="flex-1 h-5 flex rounded-r" :style="{ background: r.n ? 'transparent' : 'var(--v-track)', gap: '2px' }">
+                                            <span v-if="r.tuntas > 0" class="viz-mark h-5 block" :style="{ width: pct(r.tuntas, r.n) + '%', background: 'var(--v-s1)', borderRadius: r.belum === 0 ? '0 4px 4px 0' : '0' }"></span>
+                                            <span v-if="r.belum > 0" class="viz-mark h-5 block" :style="{ width: pct(r.belum, r.n) + '%', background: 'var(--v-s2)', borderRadius: '0 4px 4px 0' }"></span>
+                                        </span>
+                                        <span class="shrink-0 pl-2 text-xs font-bold text-right" style="width: var(--vw); color: var(--v-ink);">{{ r.n ? r.tuntas + '/' + r.n : '-' }}</span>
+                                    </button>
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- Grafik 3: peta rata-rata komponen penilaian per kelas -->
+                        <section class="viz-card" aria-labelledby="viz-t3">
+                            <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+                                <div>
+                                    <h3 id="viz-t3" class="text-sm font-extrabold text-slate-800">Peta rata-rata komponen penilaian per kelas</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">Rata-rata tiap komponen (TP, TS, NP, STS, SAS). Tanda "tidak dinilai" = bobot komponen 0% di kelas itu. Klik nama kelas untuk membuka leger.</p>
+                                </div>
+                                <div class="flex items-center gap-3 text-[11px]" style="color: var(--v-ink2);" aria-hidden="true">
+                                    <span class="flex items-center gap-1.5">50
+                                        <span class="inline-flex h-3 rounded-sm overflow-hidden"><span v-for="c in heatSteps" :key="c" class="w-5 h-3 block" :style="{ background: c }"></span></span>
+                                        100</span>
+                                    <span class="flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full" style="background: var(--v-warn);"></span> Di bawah KKM</span>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <div style="min-width: 860px;">
+                                    <div class="grid items-end gap-0.5 mb-0.5" :style="{ gridTemplateColumns: '90px repeat(' + masterColumns.length + ', minmax(40px, 1fr))' }">
+                                        <span></span>
+                                        <span v-for="c in masterColumns" :key="c.key" class="text-[10px] font-bold uppercase py-1 text-center" style="color: var(--v-ink2);">{{ c.short }}</span>
+                                    </div>
+                                    <div v-for="r in componentHeat" :key="r.m.id" class="grid items-center gap-0.5 mb-0.5" :style="{ gridTemplateColumns: '90px repeat(' + masterColumns.length + ', minmax(40px, 1fr))' }">
+                                        <button type="button" @click="selectKelas(r.m.id)" class="text-xs font-semibold text-left truncate hover:underline" style="color: var(--v-ink);">{{ r.m.name }}</button>
+                                        <div v-for="c in r.cells" :key="c.col.key"
+                                             @mousemove="showTip($event, tipComp(r, c))" @mouseleave="hideTip"
+                                             class="viz-cell relative h-8 rounded-md text-[11px] font-bold flex items-center justify-center"
+                                             :style="c.avg === null ? { background: 'var(--v-track)', color: 'var(--v-muted)' } : { background: heatColor(c.avg), color: heatText(c.avg) }">
+                                            {{ c.avg === null ? '-' : c.avg.toFixed(0) }}
+                                            <span v-if="c.avg !== null && c.avg < r.kkm" class="absolute top-0.5 right-0.5 w-2 h-2 rounded-full" style="background: var(--v-warn); box-shadow: 0 0 0 1.5px var(--v-surface);"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Siswa perlu perhatian -->
+                        <section class="viz-card" aria-labelledby="viz-t4">
+                            <h3 id="viz-t4" class="text-sm font-extrabold text-slate-800">Siswa yang perlu perhatian</h3>
+                            <p class="text-xs text-slate-500 mt-0.5 mb-3">Siswa dengan nilai akhir di bawah KKM kelasnya, diurutkan dari nilai terendah.</p>
+                            <p v-if="attentionList.length === 0" class="text-xs flex items-center gap-2 py-2" style="color: var(--v-ink2);">
+                                <i class="fa-solid fa-circle-check" style="color: #0ca30c;"></i> Semua siswa yang sudah dinilai mencapai KKM kelasnya.
+                            </p>
+                            <ul v-else class="divide-y divide-slate-200/70">
+                                <li v-for="a in attentionList.slice(0, 10)" :key="a.s.id" class="py-2.5 flex items-center gap-3">
+                                    <i class="fa-solid fa-triangle-exclamation text-xs" style="color: #fab219;"></i>
+                                    <span class="text-xs font-bold flex-1 truncate" style="color: var(--v-ink);">{{ a.s.name }}</span>
+                                    <button type="button" @click="selectKelas(a.s.kelas)" class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 transition" style="color: var(--v-ink);">{{ a.s.kelas }}</button>
+                                    <span class="text-xs font-bold tabular-nums w-12 text-right" style="color: var(--v-ink);">{{ a.na.toFixed(1) }}</span>
+                                    <span class="text-[11px] w-20 text-right" style="color: var(--v-ink2);">KKM {{ a.kkm }}</span>
+                                </li>
+                            </ul>
+                            <p v-if="attentionList.length > 10" class="text-[11px] mt-2" style="color: var(--v-ink2);">…dan {{ attentionList.length - 10 }} siswa lainnya (lihat tab Rekap Semua Kelas).</p>
+                        </section>
+                        </template>
+
+                        <!-- Tooltip tunggal -->
+                        <div v-if="tip.show" class="no-print fixed z-[65] pointer-events-none rounded-xl shadow-xl px-3 py-2.5 text-xs" :style="{ left: tip.x + 'px', top: tip.y + 'px', background: 'var(--v-surface)', border: '1px solid rgba(11,11,11,.14)', color: 'var(--v-ink2)', maxWidth: '240px' }" role="tooltip">
+                            <p class="font-bold mb-1.5" style="color: var(--v-ink);">{{ tip.title }}</p>
+                            <p v-for="(row, i) in tip.rows" :key="i" class="flex items-baseline gap-2 leading-snug">
+                                <span class="font-bold" style="color: var(--v-ink);">{{ row.value }}</span>
+                                <span>{{ row.label }}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div v-if="activeTab === 'rekap'" class="space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-xs text-slate-500">Ringkasan nilai akhir (NA) PJOK seluruh kelas • Semester {{ activeSemester }}. Klik nama kelas untuk membuka leger.</p>
+                            <button @click="openPreview('rekap')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-2 shrink-0">
+                                <i class="fa-solid fa-file-pdf"></i> Preview & Cetak Rekap
+                            </button>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-100/80 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
+                                            <th class="p-3">Kelas</th>
+                                            <th class="p-3 text-center">Siswa</th>
+                                            <th class="p-3 text-center">Rata-rata</th>
+                                            <th class="p-3 text-center">Tertinggi</th>
+                                            <th class="p-3 text-center">Terendah</th>
+                                            <th class="p-3 text-center">KKM</th>
+                                            <th class="p-3 text-center">Tuntas</th>
+                                            <th class="p-3 text-center">Belum</th>
+                                            <th class="p-3 text-center border-l border-slate-200">A</th>
+                                            <th class="p-3 text-center">B</th>
+                                            <th class="p-3 text-center">C</th>
+                                            <th class="p-3 text-center">D</th>
+                                            <th class="p-3 border-l border-slate-200">Bobot (TP/TS/NP/STS/SAS)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200">
+                                        <tr v-for="k in kelasSummary" :key="k.m.id" class="hover:bg-slate-50/80 transition">
+                                            <td class="p-3"><button @click="selectKelas(k.m.id)" class="font-bold text-slate-800 hover:text-emerald-700 hover:underline">{{ k.m.name }}</button></td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.total }}</td>
+                                            <td class="p-3 text-center font-bold tabular-nums" :class="k.avg !== null && k.avg < k.kkm ? 'text-rose-600' : 'text-slate-900'">{{ k.avg === null ? '-' : k.avg.toFixed(1) }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.hi ? k.hi.v.toFixed(1) : '-' }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.lo ? k.lo.v.toFixed(1) : '-' }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.kkm }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.n ? k.tuntas : '-' }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.n ? k.belum : '-' }}</td>
+                                            <td class="p-3 text-center tabular-nums border-l border-slate-100">{{ k.pred.A }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.pred.B }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.pred.C }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ k.pred.D }}</td>
+                                            <td class="p-3 border-l border-slate-100 text-slate-600 whitespace-nowrap">{{ k.bobot.tp }} / {{ k.bobot.ts }} / {{ k.bobot.np }} / {{ k.bobot.sts }} / {{ k.bobot.sas }}</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="bg-emerald-50 font-bold text-emerald-800 border-t-2 border-emerald-200">
+                                            <td class="p-3 uppercase tracking-wider">Semua Kelas</td>
+                                            <td class="p-3 text-center tabular-nums">{{ semesterStudents.length }}</td>
+                                            <td class="p-3 text-center tabular-nums">{{ classOverallAverage === null ? '-' : classOverallAverage }}</td>
+                                            <td colspan="10"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="activeTab === 'gas'" class="space-y-6 max-w-4xl">
+                        <button @click="activeTab = 'leger'" class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-xl transition">
+                            <i class="fa-solid fa-arrow-left"></i> Kembali ke Leger {{ activeKelasObj.name }}
+                        </button>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-sheet-plastic text-emerald-600"></i> Hubungkan Google Spreadsheet (Pemisahan Per Sheet Kelas)
+                            </h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Setiap kelas akan otomatis disimpan ke dalam <b>Sheet khusus</b> (misal: Sheet <code class="bg-slate-100 px-1 rounded">Kelas 1</code>, <code class="bg-slate-100 px-1 rounded">Kelas 2</code>, dst) di Google Spreadsheet Anda.</p>
+                            
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-slate-700">Apps Script Web App URL:</label>
+                                <div class="flex gap-2">
+                                    <input type="text" v-model="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <button @click="saveGasUrl" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+                                        Simpan
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3 pt-2">
+                                <button @click="pushDataToGas" :disabled="!gasUrl || isLoadingGas" class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Kirim & Pisahkan Ke Sheet Masing-Masing Kelas
+                                </button>
+                                <button @click="pullDataFromGas" :disabled="!gasUrl || isLoadingGas" class="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Tarik Data Seluruh Sheet Kelas
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Code GS Copy Box -->
+                        <div class="bg-slate-900 text-slate-200 p-6 rounded-2xl shadow-sm space-y-3">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Kode Google Apps Script - Per Sheet Kelas (`Code.gs`)</h4>
+                                <button @click="copyCodeGs" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg text-emerald-400 font-semibold border border-slate-700 transition">
+                                    <i class="fa-solid fa-copy"></i> Salin Skrip Per-Sheet
+                                </button>
+                            </div>
+                            <pre class="text-[11px] font-mono bg-slate-950 p-4 rounded-xl overflow-x-auto text-emerald-300 leading-relaxed border border-slate-800 max-h-72">{{ gasScriptCode }}</pre>
+                        </div>
+                    </div>
+
+                    <div v-if="activeTab === 'excel'" class="space-y-4 max-w-4xl">
+                        <button @click="activeTab = 'leger'" class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-xl transition">
+                            <i class="fa-solid fa-arrow-left"></i> Kembali ke Leger {{ activeKelasObj.name }}
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-file-export text-emerald-600"></i> Export Leger Ke Excel
+                                </h3>
+                                <p class="text-xs text-slate-500">Unduh berkas Excel .xlsx berisi sheet Rekap dan satu sheet untuk setiap kelas.</p>
+                                <button @click="exportToExcel" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition flex justify-center items-center gap-2">
+                                    <i class="fa-solid fa-download"></i> Download Excel (Leger PJOK.xlsx)
+                                </button>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-file-import text-blue-600"></i> Import Daftar Nama dari Excel
+                                </h3>
+                                <p class="text-xs text-slate-500">Unggah file Excel berisi kolom NISN, Nama, Gender untuk kelas {{ activeKelas }}.</p>
+                                <input type="file" ref="excelFileInput" @change="importFromExcel" accept=".xlsx, .xls, .csv" class="text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+
+        <!-- ================= MODALS SECTION ================= -->
+
+        <!-- 1. MODAL EDIT LENGKAP SISWA -->
+        <div v-if="showEditStudentModal && editingStudent" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 no-print overflow-y-auto">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+                
+                <!-- Modal Header -->
+                <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-base">
+                            <i class="fa-solid fa-user-pen"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base">Edit Data & Nilai Siswa</h3>
+                            <p class="text-xs text-slate-400">Ubah informasi identitas dan komponen penilaian</p>
+                        </div>
+                    </div>
+                    <button @click="closeEditModal" aria-label="Tutup" class="text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body Form -->
+                <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs text-slate-700">
+                    
+                    <!-- Section A: Identitas Siswa -->
+                    <div class="space-y-3">
+                        <h4 class="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 border-b pb-1.5">
+                            <i class="fa-solid fa-id-card text-emerald-600"></i> Identitas Siswa
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Nama Lengkap Siswa</label>
+                                <input type="text" v-model="editingStudent.name" class="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-xl px-3 py-2 font-bold text-slate-800 outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">NISN / No. Induk</label>
+                                <input type="text" v-model="editingStudent.nisn" class="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-xl px-3 py-2 font-mono text-slate-800 outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Jenis Kelamin</label>
+                                <select v-model="editingStudent.gender" class="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-xl px-3 py-2 font-semibold text-slate-800 outline-none">
+                                    <option value="L">Laki-Laki (L)</option>
+                                    <option value="P">Perempuan (P)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Kelas</label>
+                                <select v-model="editingStudent.kelas" class="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-xl px-3 py-2 font-semibold text-slate-800 outline-none">
+                                    <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.name }}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section B: Form Nilai Komponen -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center border-b pb-1.5">
+                            <h4 class="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-calculator text-blue-600"></i> Nilai {{ activeKelasObj.name }}
+                            </h4>
+                            <div class="flex items-center gap-2 font-bold">
+                                <span>NA Preview:</span>
+                                <span class="bg-slate-900 text-emerald-400 px-2.5 py-0.5 rounded-lg text-sm">
+                                    {{ calculateNA(editingStudent) }} ({{ getPredicate(calculateNA(editingStudent)) }})
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- 4 TP -->
+                        <div v-if="bobot.tp > 0">
+                            <label class="block font-semibold text-blue-700 mb-1">4 Tugas Proyek (TP 1 - 4):</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div v-for="i in 4" :key="'ed_tp_'+i">
+                                    <span class="text-[10px] text-slate-400">TP {{ i }}</span>
+                                    <input type="number" min="0" max="100" v-model.number="sc(editingStudent)['tp'+i]" placeholder="-" class="w-full bg-blue-50/50 border border-blue-200 focus:bg-white focus:border-blue-500 rounded-xl p-2 text-center font-semibold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4 TS -->
+                        <div v-if="bobot.ts > 0">
+                            <label class="block font-semibold text-amber-700 mb-1">4 Tugas Sumatif (TS 1 - 4):</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div v-for="i in 4" :key="'ed_ts_'+i">
+                                    <span class="text-[10px] text-slate-400">TS {{ i }}</span>
+                                    <input type="number" min="0" max="100" v-model.number="sc(editingStudent)['ts'+i]" placeholder="-" class="w-full bg-amber-50/50 border border-amber-200 focus:bg-white focus:border-amber-500 rounded-xl p-2 text-center font-semibold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4 NP -->
+                        <div v-if="bobot.np > 0">
+                            <label class="block font-semibold text-emerald-700 mb-1">4 Nilai Praktik / Unjuk Kerja (NP 1 - 4):</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div v-for="i in 4" :key="'ed_np_'+i">
+                                    <span class="text-[10px] text-slate-400">NP {{ i }}</span>
+                                    <input type="number" min="0" max="100" v-model.number="sc(editingStudent)['np'+i]" placeholder="-" class="w-full bg-emerald-50/50 border border-emerald-200 focus:bg-white focus:border-emerald-500 rounded-xl p-2 text-center font-semibold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STS & SAS -->
+                        <div v-if="bobot.sts > 0 || bobot.sas > 0">
+                            <label class="block font-semibold text-purple-700 mb-1">Sumatif Tengah & Akhir Semester:</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <span class="text-[10px] text-slate-400">STS (Sumatif Tengah Sem)</span>
+                                    <input type="number" min="0" max="100" v-model.number="sc(editingStudent).sts" placeholder="-" class="w-full bg-purple-50/50 border border-purple-200 focus:bg-white focus:border-purple-500 rounded-xl p-2 text-center font-bold">
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400">SAS (Sumatif Akhir Sem)</span>
+                                    <input type="number" min="0" max="100" v-model.number="sc(editingStudent).sas" placeholder="-" class="w-full bg-rose-50/50 border border-rose-200 focus:bg-white focus:border-rose-500 rounded-xl p-2 text-center font-bold">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section C: Catatan / Deskripsi Capaian -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center border-b pb-1">
+                            <h4 class="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-comment-dots text-emerald-600"></i> Catatan Capaian Siswa
+                            </h4>
+                            <button @click="nl(editingStudent).catatan = generateAutoNote(editingStudent)" class="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 transition">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate Catatan
+                            </button>
+                        </div>
+                        <textarea v-model="nl(editingStudent).catatan" rows="3" class="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-xl p-3 text-xs outline-none leading-relaxed" placeholder="Tuliskan deskripsi narasi perkembangan siswa..."></textarea>
+                    </div>
+
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-slate-50 px-6 py-4 flex justify-between items-center border-t border-slate-200 shrink-0">
+                    <button @click="requestDeleteStudent(editingStudent)" class="text-rose-600 hover:text-rose-700 font-semibold text-xs flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-rose-50 transition">
+                        <i class="fa-solid fa-trash-can"></i> Hapus Siswa Ini
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button @click="closeEditModal" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl transition">
+                            Batal
+                        </button>
+                        <button @click="saveStudentEdit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 2. Modal Atur Bobot -->
+        <div v-if="showBobotModal" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 no-print">
+            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-5">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-bold text-slate-800 text-base">Atur Bobot Nilai • {{ activeKelas }}</h3>
+                    <button @click="showBobotModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <p class="text-xs text-slate-500 leading-relaxed">Bobot disimpan terpisah untuk tiap kelas. Isi <b>0%</b> jika komponen tidak dinilai di kelas ini (misalnya Tugas Proyek) — kolomnya otomatis disembunyikan dan tidak dihitung.</p>
+                <div class="space-y-3 text-xs">
+                    <div v-for="(val, key) in bobot" :key="key" class="flex items-center justify-between gap-3">
+                        <label class="font-semibold text-slate-700">{{ bobotLabels[key] }}</label>
+                        <div class="flex items-center gap-2">
+                            <span v-if="Number(bobot[key]) === 0" class="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">tidak dinilai</span>
+                            <input type="number" min="0" max="100" v-model.number="bobot[key]" class="w-16 border rounded-lg p-1.5 text-center text-xs font-bold">
+                            <span class="text-slate-400">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs space-y-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-semibold text-slate-600">Salin bobot dari:</span>
+                        <select v-model="copyFromKelas" class="border rounded-lg px-2 py-1 text-xs">
+                            <option value="">pilih kelas…</option>
+                            <option v-for="k in kelasList" :key="k.id" :value="k.id" :disabled="k.id === activeKelas">{{ k.name }}</option>
+                        </select>
+                        <button @click="copyBobotFrom" :disabled="!copyFromKelas" class="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-300 text-white font-bold px-3 py-1.5 rounded-lg">Salin</button>
+                    </div>
+                    <button @click="copyBobotToAll" class="text-emerald-700 hover:text-emerald-800 font-bold">Terapkan bobot {{ activeKelas }} ke semua kelas</button>
+                </div>
+                <div class="flex justify-between items-center border-t pt-3">
+                    <span class="text-xs font-bold" :class="totalBobot === 100 ? 'text-emerald-600' : 'text-rose-600'">Total: {{ totalBobot }}%<span v-if="totalBobot !== 100" class="font-normal"> (sebaiknya 100%)</span></span>
+                    <button @click="showBobotModal = false" class="bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-xl">Simpan</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Modal Pengaturan Kop Sekolah & TTD Resmi -->
+        <div v-if="showSettingsKopModal" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 no-print">
+            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
+                <div class="flex justify-between items-center border-b pb-4">
+                    <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-landmark text-emerald-600"></i> Pengaturan Kop Sekolah & TTD Dokumen Resmi
+                    </h3>
+                    <button @click="showSettingsKopModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <h4 class="font-bold text-emerald-700 border-b pb-1 uppercase tracking-wider">1. Identitas Kop Surat & Logo Kedinasan</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Pemerintah Kabupaten / Kota</label>
+                            <input type="text" v-model="kop.pemerintah" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Dinas Pendidikan</label>
+                            <input type="text" v-model="kop.dinas" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-slate-600 font-semibold mb-1">Nama Satuan Pendidikan (Sekolah)</label>
+                            <input type="text" v-model="kop.namaSekolah" class="w-full border rounded-lg p-2 text-xs font-bold">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-slate-600 font-semibold mb-1">Alamat Lengkap Sekolah</label>
+                            <input type="text" v-model="kop.alamat" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-slate-600 font-semibold mb-1">Kontak / Email / Telepon</label>
+                            <input type="text" v-model="kop.kontak" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+
+                        <!-- LOGO UPLOAD INPUTS -->
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <label class="block text-slate-700 font-bold">Logo Daerah (Sisi Kiri)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="file" accept="image/*" @change="handleLogoUpload($event, 'logoDaerah')" class="text-[10px] w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-emerald-50 file:text-emerald-700">
+                                <button v-if="kop.logoDaerah" @click="kop.logoDaerah = ''" class="text-rose-500 hover:text-rose-700 text-xs shrink-0" title="Hapus Logo"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                            <input type="text" v-model="kop.logoDaerah" placeholder="Atau masukan URL Gambar Logo Daerah..." class="w-full border rounded-lg p-1.5 text-[10px]">
+                        </div>
+
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <label class="block text-slate-700 font-bold">Logo Sekolah / Tut Wuri (Sisi Kanan)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="file" accept="image/*" @change="handleLogoUpload($event, 'logoSekolah')" class="text-[10px] w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-emerald-50 file:text-emerald-700">
+                                <button v-if="kop.logoSekolah" @click="kop.logoSekolah = ''" class="text-rose-500 hover:text-rose-700 text-xs shrink-0" title="Hapus Logo"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                            <input type="text" v-model="kop.logoSekolah" placeholder="Atau masukan URL Gambar Logo Sekolah..." class="w-full border rounded-lg p-1.5 text-[10px]">
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-emerald-700 border-b pb-1 pt-2 uppercase tracking-wider">2. Titimangsa & Tanda Tangan</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Tempat / Kota Penetapan</label>
+                            <input type="text" v-model="ttd.tempat" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Tanggal Dokumen Leger</label>
+                            <input type="text" v-model="ttd.tanggal" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Nama Kepala Sekolah</label>
+                            <input type="text" v-model="ttd.namaKepsek" class="w-full border rounded-lg p-2 text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">NIP Kepala Sekolah</label>
+                            <input type="text" v-model="ttd.nipKepsek" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Nama Guru PJOK</label>
+                            <input type="text" v-model="ttd.namaGuru" class="w-full border rounded-lg p-2 text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">NIP Guru PJOK</label>
+                            <input type="text" v-model="ttd.nipGuru" class="w-full border rounded-lg p-2 text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <h4 class="font-bold text-emerald-700 border-b pb-1 uppercase tracking-wider">3. KKM per Kelas</h4>
+                    <p class="text-slate-500 leading-relaxed">KKM (batas tuntas) dapat berbeda untuk tiap kelas. Bobot penilaian diatur terpisah lewat tombol <b>Atur Bobot</b> di setiap kelas.</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <label v-for="k in kelasList" :key="k.id" class="flex items-center justify-between gap-2 border rounded-lg px-3 py-2">
+                            <span class="font-semibold text-slate-700">{{ k.name }}</span>
+                            <input type="number" min="0" max="100" v-model.number="k.kkm" class="w-16 border rounded-lg p-1.5 text-xs text-center font-bold">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-3 border-t">
+                    <button @click="showSettingsKopModal = false" class="bg-emerald-600 text-white font-bold px-5 py-2 rounded-xl text-xs hover:bg-emerald-700 transition">
+                        Simpan & Terapkan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. MODAL PREVIEW & CETAK DOKUMEN PDF RESMI -->
+        <div v-if="showPreviewModal" class="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-2 md:p-6 no-print">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden">
+                
+                <!-- Modal Top Navigation Header -->
+                <div class="bg-slate-900 text-white px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-bold">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold">Preview Dokumen Leger Resmi PDF</h3>
+                            <p class="text-xs text-slate-400">{{ activeKelas }} • Semester {{ activeSemester }} • TA {{ filter.tahunAjaran }}</p>
+                        </div>
+                    </div>
+
+                    <!-- PDF Control Buttons -->
+                    <div class="flex items-center gap-2">
+                        <div class="flex bg-slate-800 rounded-xl p-0.5 text-xs font-bold" role="group" aria-label="Jenis dokumen">
+                            <button @click="previewMode = 'kelas'" :class="previewMode === 'kelas' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">Per Kelas</button>
+                            <button @click="previewMode = 'rekap'" :class="previewMode === 'rekap' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition">Rekap Semua Kelas</button>
+                        </div>
+                        <button @click="downloadPDF" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                            <i class="fa-solid fa-download"></i> Unduh File PDF
+                        </button>
+                        <button @click="printPDF" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> Cetak (Print Direct)
+                        </button>
+                        <button @click="showPreviewModal = false" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl text-xs transition ml-2">
+                            <i class="fa-solid fa-xmark text-sm"></i> Tutup
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modal Scrollable Preview Canvas -->
+                <div class="flex-1 overflow-y-auto p-6 md:p-10 bg-slate-100 flex justify-center">
+                    
+                    <!-- TARGET PDF CONTENT CONTAINER -->
+                    <div id="official-pdf-content" class="bg-white p-8 md:p-10 shadow-lg border border-slate-300 w-full max-w-[1000px] text-black font-sans leading-normal">
+                        
+                        <!-- OFFICIAL KOP SEKOLAH -->
+                        <div class="text-center relative mb-4">
+                            <div class="flex items-center justify-between border-b-2 border-black pb-3 kop-border">
+                                <!-- Logo Kiri (Daerah) -->
+                                <div class="w-16 h-16 text-center flex justify-center items-center overflow-hidden shrink-0">
+                                    <img v-if="kop.logoDaerah" :src="kop.logoDaerah" alt="Logo Daerah" class="max-w-full max-h-full object-contain">
+                                    <svg v-else class="w-14 h-14 text-black" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                                        <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" stroke-width="3" fill="none"/>
+                                        <circle cx="50" cy="50" r="20" stroke-width="2"/>
+                                        <path d="M50 30 L50 70 M30 50 L70 50" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                
+                                <div class="flex-1 px-4 text-black">
+                                    <h4 class="text-xs md:text-sm font-bold uppercase tracking-wider leading-tight">{{ kop.pemerintah }}</h4>
+                                    <h4 class="text-xs md:text-sm font-bold uppercase tracking-wider leading-tight">{{ kop.dinas }}</h4>
+                                    <h2 class="text-base md:text-lg font-extrabold uppercase tracking-wide leading-tight mt-0.5">{{ kop.namaSekolah }}</h2>
+                                    <p class="text-[10px] md:text-xs leading-tight mt-1">{{ kop.alamat }}</p>
+                                    <p class="text-[9px] md:text-[10px] leading-tight font-serif italic">{{ kop.kontak }}</p>
+                                </div>
+
+                                <!-- Logo Kanan (Sekolah / Tut Wuri) -->
+                                <div class="w-16 h-16 text-center flex justify-center items-center overflow-hidden shrink-0">
+                                    <img v-if="kop.logoSekolah" :src="kop.logoSekolah" alt="Logo Sekolah" class="max-w-full max-h-full object-contain">
+                                    <svg v-else class="w-14 h-14 text-black" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                                        <circle cx="50" cy="50" r="35" stroke-width="3"/>
+                                        <path d="M35 65 L50 30 L65 65 Z" stroke-width="2.5"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DOCUMENT TITLE & METADATA -->
+                        <div class="text-center my-3 text-black">
+                            <h3 class="text-sm md:text-base font-bold uppercase underline tracking-wide">{{ previewMode === 'rekap' ? 'LEGER REKAPITULASI NILAI AKHIR PJOK' : 'LEGER PENILAIAN CAPAIAN PEMBELAJARAN PJOK' }}</h3>
+                            <p class="text-xs font-semibold mt-0.5">Tahun Ajaran {{ filter.tahunAjaran }} - Semester {{ activeSemester }}</p>
+                        </div>
+
+                        <!-- IDENTITAS KELAS -->
+                        <div class="grid grid-cols-2 text-xs mb-3 text-black font-serif">
+                            <div>
+                                <p><span class="font-bold">Satuan Pendidikan:</span> {{ kop.namaSekolah }}</p>
+                                <p><span class="font-bold">Mata Pelajaran:</span> Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)</p>
+                            </div>
+                            <div class="text-right">
+                                <p><span class="font-bold">Kelas / Fase:</span> {{ previewMode === 'rekap' ? 'Seluruh Kelas (1–6)' : activeKelas + ' / Fase ' + faseKelas }}</p>
+                                <p><span class="font-bold">Semester:</span> {{ activeSemester }}</p>
+                                <p v-if="previewMode === 'kelas'"><span class="font-bold">KKM:</span> {{ kkmOf(activeKelas) }} • <span class="font-bold">Bobot:</span> <template v-for="(label, key) in {tp:'TP',ts:'TS',np:'NP',sts:'STS',sas:'SAS'}" :key="key"><template v-if="bobot[key] > 0">{{ label }} {{ bobot[key] }}% </template></template></p>
+                            </div>
+                        </div>
+
+                        <!-- DYNAMIC OFFICIAL TABLE -->
+                        <div v-if="previewMode === 'kelas'" class="overflow-x-auto">
+                            <table class="w-full official-table text-[8.5pt] border-collapse border border-black text-black">
+                                <thead>
+                                    <tr class="bg-gray-100 text-center font-bold">
+                                        <th class="border border-black py-1 px-1 w-6">No</th>
+                                        <th class="border border-black py-1 px-2 w-20">NISN</th>
+                                        <th class="border border-black py-1 px-2 text-left min-w-[160px]">Nama Siswa</th>
+                                        <th class="border border-black py-1 px-1 w-6">L/P</th>
+                                        
+                                        <!-- Display active non-empty columns -->
+                                        <th v-for="col in activePrintColumns" :key="col.key" class="border border-black py-1 px-1 text-center min-w-[40px]">
+                                            <div class="font-bold">{{ col.short }}</div>
+                                        </th>
+                                        
+                                        <th class="border border-black py-1 px-1 font-bold w-12 bg-gray-200">NA</th>
+                                        <th class="border border-black py-1 px-1 font-bold w-8">Pred</th>
+                                        <th class="border border-black py-1 px-2 text-left min-w-[140px]">Deskripsi / Catatan Capaian</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(student, index) in currentClassStudents" :key="student.id" class="text-center">
+                                        <td class="border border-black py-1 px-1">{{ index + 1 }}</td>
+                                        <td class="border border-black py-1 px-1 text-left font-mono text-[8pt]">{{ student.nisn }}</td>
+                                        <td class="border border-black py-1 px-2 text-left font-semibold uppercase">{{ student.name }}</td>
+                                        <td class="border border-black py-1 px-1">{{ student.gender }}</td>
+                                        
+                                        <td v-for="col in activePrintColumns" :key="col.key" class="border border-black py-1 px-1">
+                                            {{ sc(student)[col.key] !== null && sc(student)[col.key] !== undefined && sc(student)[col.key] !== '' ? sc(student)[col.key] : '-' }}
+                                        </td>
+                                        
+                                        <td class="border border-black py-1 px-1 font-bold bg-gray-50">
+                                            {{ calculateNA(student) }}
+                                        </td>
+                                        <td class="border border-black py-1 px-1 font-bold">
+                                            {{ getPredicate(calculateNA(student)) }}
+                                        </td>
+                                        <td class="border border-black py-1 px-2 text-left text-[7.5pt] leading-tight">
+                                            {{ nl(student).catatan || generateAutoNote(student) }}
+                                        </td>
+                                    </tr>
+                                    <tr v-if="currentClassStudents.length === 0">
+                                        <td :colspan="activePrintColumns.length + 7" class="border border-black p-4 text-center italic text-gray-500">
+                                            Data siswa untuk {{ activeKelas }} belum tersedia.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div v-else class="overflow-x-auto">
+                            <table class="w-full official-table text-[8.5pt] border-collapse border border-black text-black">
+                                <thead>
+                                    <tr class="bg-gray-100 text-center font-bold">
+                                        <th class="border border-black py-1 px-2 text-left">Kelas</th>
+                                        <th class="border border-black py-1 px-1">Siswa</th>
+                                        <th class="border border-black py-1 px-1 bg-gray-200">Rata-rata</th>
+                                        <th class="border border-black py-1 px-1">Tertinggi</th>
+                                        <th class="border border-black py-1 px-1">Terendah</th>
+                                        <th class="border border-black py-1 px-1">KKM</th>
+                                        <th class="border border-black py-1 px-1">Tuntas</th>
+                                        <th class="border border-black py-1 px-1">Belum</th>
+                                        <th class="border border-black py-1 px-1">A</th>
+                                        <th class="border border-black py-1 px-1">B</th>
+                                        <th class="border border-black py-1 px-1">C</th>
+                                        <th class="border border-black py-1 px-1">D</th>
+                                        <th class="border border-black py-1 px-2">Bobot TP/TS/NP/STS/SAS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="k in kelasSummary" :key="k.m.id" class="text-center">
+                                        <td class="border border-black py-1 px-2 text-left font-semibold">{{ k.m.name }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.total }}</td>
+                                        <td class="border border-black py-1 px-1 font-bold bg-gray-50">{{ k.avg === null ? '-' : k.avg.toFixed(1) }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.hi ? k.hi.v.toFixed(1) : '-' }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.lo ? k.lo.v.toFixed(1) : '-' }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.kkm }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.n ? k.tuntas : '-' }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.n ? k.belum : '-' }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.pred.A }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.pred.B }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.pred.C }}</td>
+                                        <td class="border border-black py-1 px-1">{{ k.pred.D }}</td>
+                                        <td class="border border-black py-1 px-2">{{ k.bobot.tp }} / {{ k.bobot.ts }} / {{ k.bobot.np }} / {{ k.bobot.sts }} / {{ k.bobot.sas }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- OFFICIAL SIGNATURE FOOTER -->
+                        <div class="mt-8 pt-2 text-xs font-serif text-black break-inside-avoid">
+                            <div class="flex justify-between items-start">
+                                <div class="text-center w-56">
+                                    <p class="mb-1">Mengetahui,</p>
+                                    <p class="font-bold">Kepala {{ kop.namaSekolah }}</p>
+                                    <div class="h-14"></div>
+                                    <p class="font-bold underline uppercase">{{ ttd.namaKepsek }}</p>
+                                    <p>NIP. {{ ttd.nipKepsek }}</p>
+                                </div>
+
+                                <div class="text-center w-56">
+                                    <p class="mb-1">{{ ttd.tempat }}, {{ ttd.tanggal }}</p>
+                                    <p class="font-bold">Guru Mata Pelajaran PJOK</p>
+                                    <div class="h-14"></div>
+                                    <p class="font-bold underline uppercase">{{ ttd.namaGuru }}</p>
+                                    <p>NIP. {{ ttd.nipGuru }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 4b. BAR PERUBAHAN BELUM DISIMPAN -->
+        <div v-if="pendingChanges.length > 0 && activeTab === 'leger'"
+             class="no-print fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[36rem] z-40 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-pen-to-square"></i></div>
+                <div class="min-w-0">
+                    <p class="text-xs font-extrabold leading-tight">{{ pendingChanges.length }} perubahan belum disimpan</p>
+                    <p class="text-[11px] text-slate-400 leading-snug truncate">{{ pendingChanges.map(c => c.s.name).join(', ') }}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button @click="revertPending" class="px-3 py-2 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">Batalkan</button>
+                <button @click="savePending" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-2"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+            </div>
+        </div>
+
+        <!-- 4c. DIALOG KONFIRMASI -->
+        <transition name="fade">
+            <div v-if="confirmDlg.show" class="no-print fixed inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4" @click.self="confirmNo">
+                <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+                    <div class="p-6 flex items-start gap-4">
+                        <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-lg" :class="confirmStyle(confirmDlg.type).icon">
+                            <i :class="confirmStyle(confirmDlg.type).fa"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h3 id="confirm-title" class="text-sm font-extrabold text-slate-900">{{ confirmDlg.title }}</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed mt-1">{{ confirmDlg.message }}</p>
+                            <ul v-if="confirmDlg.details && confirmDlg.details.length" class="mt-3 space-y-1 max-h-40 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                <li v-for="(d, i) in confirmDlg.details" :key="i" class="text-[11px] text-slate-700 leading-snug break-words">• {{ d }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-2 border-t border-slate-200">
+                        <button ref="confirmCancelBtn" @click="confirmNo" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl transition">{{ confirmDlg.cancelText }}</button>
+                        <button @click="confirmYes" class="text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm" :class="confirmStyle(confirmDlg.type).btn">{{ confirmDlg.confirmText }}</button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- 5. MODERN STACKED TOAST NOTIFICATIONS -->
+        <div class="no-print fixed bottom-24 sm:bottom-4 right-4 left-4 sm:left-auto sm:w-96 z-[60] pointer-events-none" aria-live="polite" aria-atomic="false">
+            <transition-group name="toast" tag="div" class="relative flex flex-col gap-2.5">
+                <div v-for="t in toasts" :key="t.id"
+                     class="toast-card pointer-events-auto relative overflow-hidden bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-xl shadow-slate-900/10"
+                     :role="t.type === 'error' || t.type === 'warning' ? 'alert' : 'status'">
+                    <div class="flex items-start gap-3 p-3.5 pr-9">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" :class="toastStyle(t.type).icon">
+                            <i :class="toastStyle(t.type).fa"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-extrabold text-slate-800 leading-tight">{{ t.title }}</p>
+                            <p class="text-xs text-slate-500 leading-snug mt-0.5 break-words">{{ t.message }}</p>
+                            <button v-if="t.action" @click="runToastAction(t)" class="mt-2 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-rotate-left"></i> {{ t.action.label }}
+                            </button>
+                        </div>
+                    </div>
+                    <button @click="dismissToast(t.id)" aria-label="Tutup notifikasi" class="absolute top-2.5 right-2.5 w-6 h-6 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                    <div :key="t.id + '-' + t.tick" class="toast-bar absolute left-0 bottom-0 h-1 w-full" :class="toastStyle(t.type).bar"
+                         :style="{ animationDuration: t.duration + 'ms' }" @animationend="dismissToast(t.id)"></div>
+                </div>
+            </transition-group>
+        </div>
+
+    </div>
+
+    <!-- VUE 3 APPLICATION SCRIPT -->
+    <script>
+        const COLUMN_KEYS = ['tp1','tp2','tp3','tp4','ts1','ts2','ts3','ts4','np1','np2','np3','np4','sts','sas'];
+        const KELAS_DEFAULT = [
+            { id: 'Kelas 1', name: 'Kelas 1', short: 'K1', icon: 'fa-solid fa-shapes', kkm: 75 },
+            { id: 'Kelas 2', name: 'Kelas 2', short: 'K2', icon: 'fa-solid fa-person-running', kkm: 75 },
+            { id: 'Kelas 3', name: 'Kelas 3', short: 'K3', icon: 'fa-solid fa-futbol', kkm: 75 },
+            { id: 'Kelas 4', name: 'Kelas 4', short: 'K4', icon: 'fa-solid fa-basketball', kkm: 75 },
+            { id: 'Kelas 5', name: 'Kelas 5', short: 'K5', icon: 'fa-solid fa-volleyball', kkm: 75 },
+            { id: 'Kelas 6', name: 'Kelas 6', short: 'K6', icon: 'fa-solid fa-trophy', kkm: 75 }
+        ];
+        // Bobot bawaan; guru dapat mengubahnya terpisah untuk tiap kelas (0% = komponen tidak dinilai)
+        function defaultBobot(kelas) {
+            return (kelas === 'Kelas 1' || kelas === 'Kelas 2')
+                ? { tp: 0, ts: 25, np: 35, sts: 20, sas: 20 }
+                : { tp: 20, ts: 20, np: 30, sts: 15, sas: 15 };
+        }
+        const MAPEL_BADGES = [
+            'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white',
+            'bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-white',
+            'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white',
+            'bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white',
+            'bg-teal-500/10 text-teal-400 group-hover:bg-teal-500 group-hover:text-white',
+            'bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white'
+        ];
+        // Kunci pembanding: abaikan huruf besar/kecil, tanda baca, spasi ganda; NISN tanpa nol di depan
+        function nameKey(v) {
+            return String(v || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+        function nisnKey(v) {
+            return String(v === null || v === undefined ? '' : v).replace(/\s+/g, '').replace(/^'+/, '').replace(/^0+/, '');
+        }
+        function emptyScores() {
+            const o = {};
+            COLUMN_KEYS.forEach(k => o[k] = null);
+            return o;
+        }
+        // Pastikan bentuk data siswa benar (juga migrasi dari versi 12 mata pelajaran -> ambil PJOK)
+        function normalizeStudent(src) {
+            const o = JSON.parse(JSON.stringify(src));
+            if (o.nilai) {
+                const n = o.nilai.pjok || Object.values(o.nilai)[0] || {};
+                o.scores = Object.assign({}, n.scores || {});
+                if (!o.catatan) o.catatan = n.catatan || '';
+                delete o.nilai;
+            }
+            o.scores = Object.assign(emptyScores(), o.scores || {});
+            o.catatan = o.catatan || '';
+            o.kelas = o.kelas || 'Kelas 4';
+            o.semester = o.semester || 'Ganjil (1)';
+            o.nisn = o.nisn || '';
+            o.gender = o.gender || 'L';
+            return o;
+        }
+        // Data contoh agar tampilan langsung terisi (silakan hapus / ganti)
+        function buildSampleStudents() {
+            const names = [
+                'Aditya Putra', 'Bunga Lestari', 'Cahya Ramadhan', 'Dinda Safitri',
+                'Eko Prasetyo', 'Fitri Handayani', 'Galih Saputra', 'Hana Permata',
+                'Ilham Maulana', 'Jelita Kusuma', 'Kevin Pratama', 'Laila Rahmawati',
+                'Mikail Fauzi', 'Nadia Putri', 'Oka Wijaya', 'Putri Ayu',
+                'Raka Mahendra', 'Salsa Amelia', 'Tegar Alfarizi', 'Umi Kulsum',
+                'Vino Adrian', 'Wulan Sari', 'Yusuf Hakim', 'Zahra Nabila'
+            ];
+            return names.map((name, i) => {
+                const ki = Math.floor(i / 4);
+                const kelas = KELAS_DEFAULT[ki].id;
+                const b = defaultBobot(kelas);
+                const base = 68 + ((i * 7) % 27) - ki;
+                const sc = emptyScores();
+                const set = (k, j) => { sc[k] = Math.max(55, Math.min(100, base + ((i * 3 + j * 5) % 9) - 4)); };
+                if (b.tp > 0) ['tp1', 'tp2', 'tp3'].forEach((k, j) => set(k, j));
+                ['ts1', 'ts2'].forEach((k, j) => set(k, j + 3));
+                ['np1', 'np2'].forEach((k, j) => set(k, j + 5));
+                set('sts', 7); set('sas', 8);
+                return { id: i + 1, kelas, semester: 'Ganjil (1)', nisn: '01234' + String(10001 + i), name, gender: i % 2 === 0 ? 'L' : 'P', scores: sc, catatan: '' };
+            });
+        }
+
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    activeKelas: 'Kelas 4',
+                    previewMode: 'kelas',
+                    bobotByKelas: (() => { const o = {}; KELAS_DEFAULT.forEach(k => { o[k.id] = defaultBobot(k.id); }); return o; })(),
+                    bobotLabels: { tp: 'Tugas Proyek (TP)', ts: 'Tugas Sumatif (TS)', np: 'Nilai Praktik (NP)', sts: 'Sumatif Tengah Semester (STS)', sas: 'Sumatif Akhir Semester (SAS)' },
+                    copyFromKelas: '',
+                    dashSort: 'kurikulum',
+                    heatSteps: ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'],
+                    tip: { show: false, x: 0, y: 0, title: '', rows: [] },
+                    kelasList: JSON.parse(JSON.stringify(KELAS_DEFAULT)),
+                    activeSemester: 'Ganjil (1)',
+                    activeTab: 'leger', // 'leger', 'dashboard', 'gas', 'excel'
+                    searchQuery: '',
+                    isSearchFocused: false,
+                    showBobotModal: false,
+                    showSettingsKopModal: false,
+                    showPreviewModal: false,
+                    showEditStudentModal: false,
+                    editingStudent: null,
+                    isLoadingGas: false,
+                    savedStudents: [],
+                    confirmDlg: { show: false, title: '', message: '', details: [], confirmText: '', cancelText: 'Batal', type: 'primary', action: null },
+                    gasUrl: '',
+
+                    // Sistem notifikasi
+                    toasts: [],
+                    toastSeq: 0,
+                    activityLog: [],
+                    showLogPanel: false,
+                    unreadCount: 0,
+                    bellRinging: false,
+
+                    filter: {
+                        tahunAjaran: '2026/2027'
+                    },
+
+                    kop: {
+                        pemerintah: 'PEMERINTAH KABUPATEN TRENGGALEK',
+                        dinas: 'DINAS PENDIDIKAN, PEMUDA, DAN OLAHRAGA',
+                        namaSekolah: 'SD NEGERI 1 SUTOJAYAN',
+                        alamat: 'Jl. Pemuda No. 12, Kec. Sutojayan, Kabupaten Trenggalek, Jawa Timur',
+                        kontak: 'Kode Pos: 66311 | Telp: (0355) 791002 | Email: sdn1sutojayan@dikpora.go.id',
+                        logoDaerah: '',
+                        logoSekolah: ''
+                    },
+
+                    ttd: {
+                        tempat: 'Trenggalek',
+                        tanggal: '18 Desember 2026',
+                        namaKepsek: 'DRA. HJ. SRI RAHAYU, M.Pd.',
+                        nipKepsek: '19680512 199103 2 004',
+                        namaGuru: 'BUDI SANTOSO, S.Pd.',
+                        nipGuru: '19850820 201001 1 012'
+                    },
+
+                    masterColumns: [
+                        { key: 'tp1', short: 'TP 1', category: 'Proyek' },
+                        { key: 'tp2', short: 'TP 2', category: 'Proyek' },
+                        { key: 'tp3', short: 'TP 3', category: 'Proyek' },
+                        { key: 'tp4', short: 'TP 4', category: 'Proyek' },
+                        { key: 'ts1', short: 'TS 1', category: 'Sumatif' },
+                        { key: 'ts2', short: 'TS 2', category: 'Sumatif' },
+                        { key: 'ts3', short: 'TS 3', category: 'Sumatif' },
+                        { key: 'ts4', short: 'TS 4', category: 'Sumatif' },
+                        { key: 'np1', short: 'NP 1', category: 'Praktik' },
+                        { key: 'np2', short: 'NP 2', category: 'Praktik' },
+                        { key: 'np3', short: 'NP 3', category: 'Praktik' },
+                        { key: 'np4', short: 'NP 4', category: 'Praktik' },
+                        { key: 'sts', short: 'STS', category: 'Ujian' },
+                        { key: 'sas', short: 'SAS', category: 'Ujian' }
+                    ],
+
+                    students: buildSampleStudents(),
+
+                    gasScriptCode: `// KODE GOOGLE APPS SCRIPT - PER SHEET KELAS (Code.gs)
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var allStudents = [];
+  
+  sheets.forEach(function(sheet) {
+    var sheetName = sheet.getName();
+    var data = sheet.getDataRange().getValues();
+    if (data.length > 1) {
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        if (!row[2] && !row[3]) continue;
+        allStudents.push({
+          kelas: row[0] || sheetName,
+          semester: row[1] || "Ganjil (1)",
+          nisn: String(row[2] || ""),
+          name: row[3] || "",
+          gender: row[4] || "L",
+          scores: {
+            tp1: row[5] !== "" ? row[5] : null,
+            tp2: row[6] !== "" ? row[6] : null,
+            tp3: row[7] !== "" ? row[7] : null,
+            tp4: row[8] !== "" ? row[8] : null,
+            ts1: row[9] !== "" ? row[9] : null,
+            ts2: row[10] !== "" ? row[10] : null,
+            ts3: row[11] !== "" ? row[11] : null,
+            ts4: row[12] !== "" ? row[12] : null,
+            np1: row[13] !== "" ? row[13] : null,
+            np2: row[14] !== "" ? row[14] : null,
+            np3: row[15] !== "" ? row[15] : null,
+            np4: row[16] !== "" ? row[16] : null,
+            sts: row[17] !== "" ? row[17] : null,
+            sas: row[18] !== "" ? row[18] : null
+          },
+          catatan: row[19] || ""
+        });
+      }
+    }
+  });
+  
+  return ContentService.createTextOutput(JSON.stringify({status: "success", data: allStudents}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var payload = JSON.parse(e.postData.contents);
+    var students = payload.students || [];
+    
+    var classList = ["Kelas 1", "Kelas 2", "Kelas 3", "Kelas 4", "Kelas 5", "Kelas 6"];
+    var grouped = {};
+    classList.forEach(function(k) { grouped[k] = []; });
+    
+    students.forEach(function(s) {
+      var k = s.kelas || "Kelas 1";
+      if (!grouped[k]) grouped[k] = [];
+      grouped[k].push(s);
+    });
+    
+    Object.keys(grouped).forEach(function(sheetName) {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+      }
+      sheet.clear();
+      sheet.appendRow(["Kelas", "Semester", "NISN", "Nama", "Gender", "TP1", "TP2", "TP3", "TP4", "TS1", "TS2", "TS3", "TS4", "NP1", "NP2", "NP3", "NP4", "STS", "SAS", "Catatan"]);
+      
+      grouped[sheetName].forEach(function(s) {
+        sheet.appendRow([
+          s.kelas, s.semester, s.nisn, s.name, s.gender,
+          s.scores.tp1 !== null && s.scores.tp1 !== undefined ? s.scores.tp1 : "",
+          s.scores.tp2 !== null && s.scores.tp2 !== undefined ? s.scores.tp2 : "",
+          s.scores.tp3 !== null && s.scores.tp3 !== undefined ? s.scores.tp3 : "",
+          s.scores.tp4 !== null && s.scores.tp4 !== undefined ? s.scores.tp4 : "",
+          s.scores.ts1 !== null && s.scores.ts1 !== undefined ? s.scores.ts1 : "",
+          s.scores.ts2 !== null && s.scores.ts2 !== undefined ? s.scores.ts2 : "",
+          s.scores.ts3 !== null && s.scores.ts3 !== undefined ? s.scores.ts3 : "",
+          s.scores.ts4 !== null && s.scores.ts4 !== undefined ? s.scores.ts4 : "",
+          s.scores.np1 !== null && s.scores.np1 !== undefined ? s.scores.np1 : "",
+          s.scores.np2 !== null && s.scores.np2 !== undefined ? s.scores.np2 : "",
+          s.scores.np3 !== null && s.scores.np3 !== undefined ? s.scores.np3 : "",
+          s.scores.np4 !== null && s.scores.np4 !== undefined ? s.scores.np4 : "",
+          s.scores.sts !== null && s.scores.sts !== undefined ? s.scores.sts : "",
+          s.scores.sas !== null && s.scores.sas !== undefined ? s.scores.sas : "",
+          s.catatan || ""
+        ]);
+      });
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({status: "success", message: "Data berhasil disimpan & dipisahkan ke masing-masing Sheet Kelas!"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`
+                };
+            },
+            computed: {
+                activeKelasObj() {
+                    return this.kelasList.find(m => m.id === this.activeKelas) || this.kelasList[0];
+                },
+                // Bobot milik kelas yang sedang dibuka (terpisah untuk tiap kelas)
+                bobot() {
+                    if (!this.bobotByKelas[this.activeKelas]) this.bobotByKelas[this.activeKelas] = defaultBobot(this.activeKelas);
+                    return this.bobotByKelas[this.activeKelas];
+                },
+                faseKelas() {
+                    const n = parseInt(String(this.activeKelas).replace(/\D/g, ''), 10) || 1;
+                    return n <= 2 ? 'A' : (n <= 4 ? 'B' : 'C');
+                },
+                semesterStudents() {
+                    return this.students.filter(s => s.semester === this.activeSemester);
+                },
+                // Ringkasan per kelas (semester aktif)
+                kelasSummary() {
+                    return this.kelasList.map((k, i) => {
+                        const list = this.semesterStudents.filter(s => s.kelas === k.id);
+                        const entries = list.filter(s => this.hasScores(s)).map(s => ({ s, v: parseFloat(this.calculateNA(s)) }));
+                        const n = entries.length;
+                        const kkm = this.kkmOf(k.id);
+                        const tuntas = entries.filter(x => x.v >= kkm).length;
+                        const pred = { A: 0, B: 0, C: 0, D: 0 };
+                        entries.forEach(x => { pred[this.getPredicate(x.v)]++; });
+                        const hi = n ? entries.reduce((a, b) => (b.v > a.v ? b : a)) : null;
+                        const lo = n ? entries.reduce((a, b) => (b.v < a.v ? b : a)) : null;
+                        return { m: k, idx: i, total: list.length, n, tuntas, belum: n - tuntas, avg: n ? entries.reduce((a, x) => a + x.v, 0) / n : null, hi, lo, kkm, pred, bobot: this.bobotByKelas[k.id] || defaultBobot(k.id) };
+                    });
+                },
+                // ----- Dashboard analitik -----
+                dashRows() {
+                    return this.kelasSummary;
+                },
+                dashRowsSorted() {
+                    const rows = this.dashRows.slice();
+                    if (this.dashSort === 'tinggi') rows.sort((a, b) => ((a.avg === null) - (b.avg === null)) || ((b.avg || 0) - (a.avg || 0)) || (a.idx - b.idx));
+                    if (this.dashSort === 'rendah') rows.sort((a, b) => ((a.avg === null) - (b.avg === null)) || ((a.avg || 0) - (b.avg || 0)) || (a.idx - b.idx));
+                    return rows;
+                },
+                dashStats() {
+                    const withData = this.dashRows.filter(r => r.avg !== null);
+                    const entriesN = withData.reduce((a, r) => a + r.n, 0);
+                    const tuntasN = withData.reduce((a, r) => a + r.tuntas, 0);
+                    return {
+                        kelasTerisi: withData.length,
+                        entriesN, tuntasN,
+                        tuntasPct: entriesN ? Math.round(tuntasN / entriesN * 100) : null,
+                        best: withData.length ? withData.reduce((a, b) => (b.avg > a.avg ? b : a)) : null,
+                        worst: withData.length ? withData.reduce((a, b) => (b.avg < a.avg ? b : a)) : null
+                    };
+                },
+                attentionList() {
+                    return this.semesterStudents
+                        .filter(s => this.hasScores(s))
+                        .map(s => ({ s, na: parseFloat(this.calculateNA(s)), kkm: this.kkmOf(s.kelas) }))
+                        .filter(a => a.na < a.kkm)
+                        .sort((a, b) => a.na - b.na);
+                },
+                classOverallAverage() {
+                    const vals = this.semesterStudents.filter(s => this.hasScores(s)).map(s => parseFloat(this.calculateNA(s)));
+                    return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : null;
+                },
+                // Rata-rata tiap komponen per kelas (komponen berbobot 0% = tidak dinilai)
+                componentHeat() {
+                    return this.kelasList.map(k => {
+                        const list = this.semesterStudents.filter(s => s.kelas === k.id);
+                        const b = this.bobotByKelas[k.id] || defaultBobot(k.id);
+                        const cells = this.masterColumns.map(col => {
+                            const group = col.key.replace(/\d+$/, '');
+                            const vals = list.map(s => s.scores[col.key]).filter(v => v !== null && v !== undefined && v !== '').map(Number);
+                            const off = !(Number(b[group]) > 0);
+                            return { col, off, n: vals.length, avg: off || !vals.length ? null : vals.reduce((a, x) => a + x, 0) / vals.length };
+                        });
+                        return { m: k, kkm: this.kkmOf(k.id), cells };
+                    });
+                },
+                // Perubahan langsung di tabel yang belum disetujui/disimpan
+                duplicateGroups() {
+                    return this.findDuplicateGroups(this.activeKelas, this.activeSemester);
+                },
+                pendingChanges() {
+                    const saved = {};
+                    this.savedStudents.forEach(s => { saved[s.id] = s; });
+                    const list = [];
+                    this.students.forEach(s => {
+                        const old = saved[s.id];
+                        if (!old) return;
+                        const { diffs, invalid } = this.diffStudent(old, s);
+                        if (diffs.length) list.push({ s, old, diffs, invalid });
+                    });
+                    return list;
+                },
+                totalBobot() {
+                    return Number(this.bobot.tp) + Number(this.bobot.ts) + Number(this.bobot.np) + Number(this.bobot.sts) + Number(this.bobot.sas);
+                },
+                currentClassStudents() {
+                    return this.students.filter(s => s.kelas === this.activeKelas && s.semester === this.activeSemester);
+                },
+                filteredStudents() {
+                    if (!this.searchQuery) return this.currentClassStudents;
+                    const q = this.searchQuery.toLowerCase();
+                    return this.currentClassStudents.filter(s => s.name.toLowerCase().includes(q) || s.nisn.includes(q));
+                },
+                globalSearchResults() {
+                    if (!this.searchQuery) return [];
+                    const q = this.searchQuery.toLowerCase();
+                    return this.students.filter(s => s.name.toLowerCase().includes(q) || s.nisn.includes(q)).slice(0, 6);
+                },
+                activePrintColumns() {
+                    return this.masterColumns.filter(col => {
+                        if (!(Number(this.bobot[col.key.replace(/\d+$/, '')]) > 0)) return false;
+                        return this.currentClassStudents.some(s => {
+                            const v = s.scores[col.key];
+                            return v !== null && v !== undefined && v !== '';
+                        });
+                    });
+                }
+            },
+            methods: {
+                /* ===== SISTEM NOTIFIKASI ===== */
+                toastStyle(type) {
+                    const map = {
+                        success: { fa: 'fa-solid fa-circle-check',         icon: 'bg-emerald-100 text-emerald-600', bar: 'bg-emerald-500' },
+                        error:   { fa: 'fa-solid fa-circle-exclamation',   icon: 'bg-rose-100 text-rose-600',       bar: 'bg-rose-500' },
+                        warning: { fa: 'fa-solid fa-triangle-exclamation', icon: 'bg-amber-100 text-amber-600',     bar: 'bg-amber-500' },
+                        info:    { fa: 'fa-solid fa-circle-info',          icon: 'bg-blue-100 text-blue-600',       bar: 'bg-blue-500' },
+                        change:  { fa: 'fa-solid fa-pen-to-square',        icon: 'bg-indigo-100 text-indigo-600',   bar: 'bg-indigo-500' }
+                    };
+                    return map[type] || map.info;
+                },
+                // Tampilkan notifikasi. Jika "key" sama, notifikasi lama diperbarui (tidak menumpuk).
+                pushToast({ title, message, type = 'success', duration = 4500, key = null, log = true, action = null }) {
+                    const existing = key ? this.toasts.find(t => t.key === key) : null;
+                    if (existing) {
+                        Object.assign(existing, { title, message, type, duration, action, tick: existing.tick + 1 });
+                    } else {
+                        this.toasts.push({ id: ++this.toastSeq, key, title, message, type, duration, action, tick: 0 });
+                        if (this.toasts.length > 4) this.toasts.shift(); // maksimal 4 tampil sekaligus
+                    }
+                    if (log) this.logActivity(title, message, type);
+                },
+                runToastAction(t) {
+                    const fn = t.action && t.action.fn;
+                    this.dismissToast(t.id);
+                    if (typeof fn === 'function') fn();
+                },
+                dismissToast(id) {
+                    this.toasts = this.toasts.filter(t => t.id !== id);
+                },
+                // Kompatibel dengan pemanggilan lama: showToastMsg('pesan', 'error')
+                showToastMsg(msg, type = 'success') {
+                    const titles = { success: 'Berhasil', error: 'Terjadi Kesalahan', warning: 'Perhatian', info: 'Informasi', change: 'Data Diperbarui' };
+                    this.pushToast({ title: titles[type] || 'Informasi', message: msg, type });
+                },
+                logActivity(title, message, type) {
+                    const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    this.activityLog.unshift({ id: ++this.toastSeq, title, message, type, time });
+                    if (this.activityLog.length > 30) this.activityLog.pop();
+                    if (!this.showLogPanel) {
+                        this.unreadCount++;
+                        this.bellRinging = false;
+                        this.$nextTick(() => { this.bellRinging = true; setTimeout(() => this.bellRinging = false, 800); });
+                    }
+                },
+                toggleLogPanel() {
+                    this.showLogPanel = !this.showLogPanel;
+                    if (this.showLogPanel) this.unreadCount = 0;
+                },
+
+                /* ===== DETEKSI PERUBAHAN DATA SISWA ===== */
+                normScore(v) {
+                    return (v === '' || v === undefined || v === null || Number.isNaN(v)) ? null : v;
+                },
+                // Bandingkan dua versi data siswa → daftar perubahan yang mudah dibaca
+                diffStudent(old, s) {
+                    const diffs = [];
+                    let invalid = false;
+                    if (old.name !== s.name) diffs.push(`nama "${old.name}" → "${s.name}"`);
+                    if (old.nisn !== s.nisn) diffs.push(`NISN ${old.nisn || '-'} → ${s.nisn || '-'}`);
+                    if (old.gender !== s.gender) diffs.push(`L/P ${old.gender} → ${s.gender}`);
+                    if (old.kelas !== s.kelas) diffs.push(`kelas ${old.kelas} → ${s.kelas}`);
+                    this.masterColumns.forEach(c => {
+                        const a = this.normScore(old.scores[c.key]);
+                        const b = this.normScore(s.scores[c.key]);
+                        if (a !== b) {
+                            diffs.push(`${c.short}: ${a ?? '-'} → ${b ?? '-'}`);
+                            if (b !== null && (b < 0 || b > 100)) invalid = true;
+                        }
+                    });
+                    if ((old.catatan || '') !== (s.catatan || '')) diffs.push('catatan diubah');
+                    return { diffs, invalid };
+                },
+                // Simpan salinan data terkini sebagai pembanding berikutnya
+                syncSnapshot() {
+                    const snap = {};
+                    this.students.forEach(s => { snap[s.id] = JSON.parse(JSON.stringify(s)); });
+                    this.snapStore = snap;
+                },
+                detectStudentChanges() {
+                    const prev = this.snapStore || {};
+                    const changes = [];
+                    this.students.forEach(s => {
+                        const old = prev[s.id];
+                        if (!old) return; // siswa baru ditangani oleh fungsi tambah/import
+                        const { diffs, invalid } = this.diffStudent(old, s);
+                        if (diffs.length) changes.push({ s, old, diffs, invalid });
+                    });
+                    this.syncSnapshot();
+
+                    if (changes.length === 0) return;
+                    if (changes.length > 3) {
+                        this.pushToast({ title: 'Perubahan Belum Disimpan', message: `${changes.length} data siswa diubah. Klik Simpan untuk menyimpan.`, type: 'change' });
+                        return;
+                    }
+                    changes.forEach(({ s, old, diffs, invalid }) => {
+                        const naOld = this.calculateNA(old), naNew = this.calculateNA(s);
+                        let msg = `${s.name} — ${diffs.slice(0, 3).join(', ')}${diffs.length > 3 ? ` (+${diffs.length - 3} lainnya)` : ''}`;
+                        if (naOld !== naNew) msg += ` • NA ${naOld} → ${naNew}`;
+                        let type = 'change', title = 'Perubahan Belum Disimpan';
+                        if (invalid) {
+                            type = 'warning'; title = 'Nilai di Luar Rentang';
+                            msg += ' • Nilai harus 0–100.';
+                        } else if (naOld !== naNew && parseFloat(naNew) < this.kkmOf(s.kelas) && parseFloat(naOld) >= this.kkmOf(s.kelas)) {
+                            type = 'warning'; title = 'Nilai Turun di Bawah KKM';
+                            msg += ` • Belum tuntas (KKM ${this.kkmOf(s.kelas)}).`;
+                        }
+                        this.pushToast({ title, message: msg, type, key: 'edit-' + s.id });
+                    });
+                },
+                // Jadwalkan pemeriksaan setelah pengguna berhenti mengetik (debounce)
+                scheduleCheck(name, fn, delay = 700) {
+                    this.timerStore = this.timerStore || {};
+                    clearTimeout(this.timerStore[name]);
+                    this.timerStore[name] = setTimeout(fn, delay);
+                },
+                selectKelas(id) {
+                    this.activeKelas = id;
+                    this.activeTab = 'leger';
+                },
+                // Data siswa kini satu mata pelajaran (PJOK): nilai & catatan langsung pada siswa
+                nl(student) {
+                    return student || { scores: {}, catatan: '' };
+                },
+                sc(student) {
+                    return (student && student.scores) || {};
+                },
+                hasScores(student) {
+                    const sco = this.sc(student);
+                    return COLUMN_KEYS.some(k => sco[k] !== null && sco[k] !== undefined && sco[k] !== '');
+                },
+                kelasBadge(i, id) {
+                    if (this.activeKelas === id && this.activeTab === 'leger') return 'bg-white/20 text-white';
+                    return MAPEL_BADGES[i % MAPEL_BADGES.length];
+                },
+                countStudentsByClass(k) {
+                    return this.students.filter(s => s.kelas === k && s.semester === this.activeSemester).length;
+                },
+                // Salin / terapkan bobot antar kelas
+                copyBobotFrom() {
+                    const src = this.bobotByKelas[this.copyFromKelas];
+                    if (!src) return;
+                    Object.assign(this.bobotByKelas[this.activeKelas], JSON.parse(JSON.stringify(src)));
+                    this.pushToast({ title: 'Bobot Disalin', message: `Bobot ${this.copyFromKelas} disalin ke ${this.activeKelas}.`, type: 'info' });
+                    this.copyFromKelas = '';
+                },
+                copyBobotToAll() {
+                    const src = JSON.parse(JSON.stringify(this.bobot));
+                    this.askConfirm({
+                        type: 'warning',
+                        title: 'Terapkan bobot ke semua kelas?',
+                        message: `Bobot ${this.activeKelas} (TP ${src.tp}% • TS ${src.ts}% • NP ${src.np}% • STS ${src.sts}% • SAS ${src.sas}%) akan menimpa bobot kelas lainnya.`,
+                        confirmText: 'Ya, Terapkan',
+                        action: () => {
+                            this.kelasList.forEach(k => { Object.assign(this.bobotByKelas[k.id], src); });
+                            this.pushToast({ title: 'Bobot Diterapkan', message: 'Bobot disamakan untuk semua kelas.', type: 'success' });
+                        }
+                    });
+                },
+                fmt(v) { return v === null || v === undefined ? '-' : Number(v).toFixed(1); },
+                pct(a, b) { return b ? (a / b) * 100 : 0; },
+                // Skala satu warna (biru): NA 50 → 100 dipetakan ke 7 langkah terang → gelap
+                heatIndex(na) {
+                    const t = (parseFloat(na) - 50) / 50;
+                    return Math.max(0, Math.min(this.heatSteps.length - 1, Math.round(t * (this.heatSteps.length - 1))));
+                },
+                heatColor(na) { return this.heatSteps[this.heatIndex(na)]; },
+                heatText(na) { return this.heatIndex(na) >= 4 ? '#ffffff' : '#0b0b0b'; },
+                showTip(e, t) {
+                    let x, y;
+                    if (e.type === 'focus') { const r = e.target.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top; }
+                    else { x = e.clientX; y = e.clientY; }
+                    this.tip = {
+                        show: true, title: t.title, rows: t.rows,
+                        x: Math.max(8, Math.min(x + 14, window.innerWidth - 256)),
+                        y: (y + 16 > window.innerHeight - 140) ? Math.max(8, y - 120) : y + 16
+                    };
+                },
+                hideTip() { this.tip.show = false; },
+                tipAvg(r) {
+                    if (r.avg === null) return { title: r.m.name, rows: [{ value: '-', label: 'Belum ada nilai' }] };
+                    return { title: r.m.name, rows: [
+                        { value: this.fmt(r.avg), label: 'rata-rata kelas' },
+                        { value: r.tuntas + ' dari ' + r.n, label: 'siswa tuntas' },
+                        { value: this.fmt(r.hi.v), label: 'tertinggi (' + r.hi.s.name + ')' },
+                        { value: this.fmt(r.lo.v), label: 'terendah (' + r.lo.s.name + ')' }
+                    ] };
+                },
+                tipTuntas(r) {
+                    if (r.n === 0) return { title: r.m.name, rows: [{ value: '-', label: 'Belum ada nilai' }] };
+                    return { title: r.m.name, rows: [
+                        { value: String(r.tuntas), label: 'siswa tuntas (' + Math.round(this.pct(r.tuntas, r.n)) + '%)' },
+                        { value: String(r.belum), label: 'siswa belum tuntas' }
+                    ] };
+                },
+                tipComp(r, c) {
+                    if (c.off) return { title: r.m.name + ' • ' + c.col.short, rows: [{ value: '-', label: 'tidak dinilai (bobot 0%)' }] };
+                    if (c.avg === null) return { title: r.m.name + ' • ' + c.col.short, rows: [{ value: '-', label: 'belum ada nilai' }] };
+                    return { title: r.m.name + ' • ' + c.col.short, rows: [
+                        { value: this.fmt(c.avg), label: 'rata-rata (' + c.n + ' siswa)' },
+                        { value: String(r.kkm), label: 'KKM kelas' }
+                    ] };
+                },
+                // KKM (batas tuntas) per kelas; nilai tidak valid -> 75
+                kkmOf(kelasId) {
+                    const m = this.kelasList.find(x => x.id === kelasId);
+                    const v = m ? Number(m.kkm) : NaN;
+                    return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 75;
+                },
+
+                // ===== Pencegahan & pembersihan data ganda (1 semester tidak boleh ada nama / NISN yang sama) =====
+                findDuplicateGroups(kelas, semester) {
+                    const list = this.students.filter(x => x.semester === semester && x.kelas === kelas);
+                    const parent = list.map((_, i) => i);
+                    const find = i => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+                    const seen = {};
+                    list.forEach((st, i) => {
+                        [nameKey(st.name) && 'n:' + nameKey(st.name), nisnKey(st.nisn) && 'i:' + nisnKey(st.nisn)].forEach(k => {
+                            if (!k) return;
+                            if (seen[k] !== undefined) parent[find(i)] = find(seen[k]); else seen[k] = i;
+                        });
+                    });
+                    const groups = {};
+                    list.forEach((st, i) => { (groups[find(i)] = groups[find(i)] || []).push(st); });
+                    return Object.values(groups).filter(g => g.length > 1);
+                },
+                filledCount(st) {
+                    return COLUMN_KEYS.filter(k => { const x = st.scores[k]; return x !== null && x !== undefined && x !== ''; }).length;
+                },
+                mergeDuplicates() {
+                    const groups = this.duplicateGroups;
+                    if (!groups.length) return;
+                    this.askConfirm({
+                        type: 'warning',
+                        title: `Gabungkan ${groups.length} data ganda?`,
+                        message: 'Dari setiap kelompok, data dengan nilai paling lengkap dipertahankan. Nilai yang kosong dilengkapi dari data lainnya, lalu duplikatnya dihapus.',
+                        details: groups.slice(0, 8).map(g => `${g[0].name} — ${g.length} data menjadi 1`).concat(groups.length > 8 ? [`…dan ${groups.length - 8} kelompok lainnya`] : []),
+                        confirmText: 'Ya, Gabungkan',
+                        action: () => {
+                            const remove = new Set();
+                            groups.forEach(g => {
+                                const sorted = g.slice().sort((a, b) => this.filledCount(b) - this.filledCount(a));
+                                const keep = this.students.find(x => x.id === sorted[0].id);
+                                sorted.slice(1).forEach(o => {
+                                    if (!String(keep.nisn || '').trim() && o.nisn) keep.nisn = o.nisn;
+                                    const plain = n => n === n.toLowerCase() || n === n.toUpperCase();
+                                    if (plain(keep.name) && !plain(o.name)) keep.name = o.name;
+                                    COLUMN_KEYS.forEach(k => {
+                                        const kv = keep.scores[k], ov = o.scores[k];
+                                        if ((kv === null || kv === undefined || kv === '') && ov !== null && ov !== undefined && ov !== '') keep.scores[k] = ov;
+                                    });
+                                    if (!keep.catatan && o.catatan) keep.catatan = o.catatan;
+                                    remove.add(o.id);
+                                });
+                            });
+                            this.students = this.students.filter(x => !remove.has(x.id));
+                            this.savedStudents = JSON.parse(JSON.stringify(this.students));
+                            this.syncSnapshot();
+                            this.pushToast({ title: 'Data Ganda Digabungkan', message: `${remove.size} data duplikat dihapus. Sisa ${this.currentClassStudents.length} siswa di ${this.activeKelas}.`, type: 'success' });
+                        }
+                    });
+                },
+                // Cari siswa lain di kelas & semester yang sama dengan nama / NISN yang sama
+                findClash(st) {
+                    return this.students.find(x => x.id !== st.id && x.semester === st.semester && x.kelas === st.kelas &&
+                        ((nameKey(x.name) && nameKey(x.name) === nameKey(st.name)) || (nisnKey(x.nisn) && nisnKey(x.nisn) === nisnKey(st.nisn))));
+                },
+                uniqueNewName() {
+                    const base = 'Nama Siswa Baru';
+                    let name = base, i = 2;
+                    while (this.students.some(x => x.semester === this.activeSemester && x.kelas === this.activeKelas && nameKey(x.name) === nameKey(name))) name = `${base} ${i++}`;
+                    return name;
+                },
+                openPreview(mode) {
+                    this.previewMode = mode || (this.activeTab === 'rekap' ? 'rekap' : 'kelas');
+                    this.showPreviewModal = true;
+                },
+                addNewStudent() {
+                    const newNisn = `0123${Math.floor(100000 + Math.random() * 900000)}`;
+                    const emptyScores = {};
+                    this.masterColumns.forEach(c => emptyScores[c.key] = null);
+
+                    const newObj = normalizeStudent({ id: Date.now(), kelas: this.activeKelas, semester: this.activeSemester, nisn: newNisn, name: this.uniqueNewName(), gender: 'L' });
+
+                    this.students.push(newObj);
+                    this.commitNew();
+                    this.openEditStudentModal(newObj);
+                    this.pushToast({ title: 'Siswa Ditambahkan', message: 'Siswa baru berhasil ditambahkan! Silakan lengkapi data.', type: 'success' });
+                },
+                openEditStudentModal(student) {
+                    // Create deep clone of student
+                    this.editingStudent = JSON.parse(JSON.stringify(student));
+                    this.showEditStudentModal = true;
+                    this.isSearchFocused = false;
+                },
+                /* ===== PENYIMPANAN OTOMATIS (localStorage) ===== */
+                persistStudents() {
+                    if (this.loadingStore) return;
+                    this.safeStore('pjok_students', this.savedStudents);
+                },
+                persistSettings() {
+                    if (this.loadingStore) return;
+                    this.safeStore('pjok_settings', { bobotByKelas: this.bobotByKelas, kkm: Object.fromEntries(this.kelasList.map(k => [k.id, k.kkm])), kop: this.kop, ttd: this.ttd });
+                },
+                safeStore(key, value) {
+                    try {
+                        localStorage.setItem(key, JSON.stringify(value));
+                    } catch (e) {
+                        this.pushToast({ title: 'Penyimpanan Lokal Gagal', message: 'Data tidak bisa disimpan di browser (penyimpanan penuh atau diblokir). Gunakan Sync Google Sheets / Export Excel.', type: 'error', key: 'store-fail' });
+                    }
+                },
+                loadStored() {
+                    try {
+                        const st = localStorage.getItem('pjok_students');
+                        if (st) { const arr = JSON.parse(st); if (Array.isArray(arr)) this.students = arr.map(normalizeStudent); }
+                        const se = localStorage.getItem('pjok_settings');
+                        if (se) {
+                            const o = JSON.parse(se);
+                            if (o.bobotByKelas) {
+                                this.kelasList.forEach(k => { if (o.bobotByKelas[k.id]) Object.assign(this.bobotByKelas[k.id], o.bobotByKelas[k.id]); });
+                            } else if (o.bobot) { // versi lama: satu bobot untuk semua -> salin ke semua kelas
+                                this.kelasList.forEach(k => Object.assign(this.bobotByKelas[k.id], o.bobot));
+                            }
+                            if (o.kkm) this.kelasList.forEach(k => { if (o.kkm[k.id] !== undefined) k.kkm = o.kkm[k.id]; });
+                            else if (Array.isArray(o.mapel)) { // versi 12 mapel: ambil KKM PJOK
+                                const pj = o.mapel.find(x => x.id === 'pjok');
+                                if (pj && pj.kkm !== undefined) this.kelasList.forEach(k => { k.kkm = pj.kkm; });
+                            }
+                            if (o.kop) Object.assign(this.kop, o.kop);
+                            if (o.ttd) Object.assign(this.ttd, o.ttd);
+                        }
+                        return !!st;
+                    } catch (e) { return false; }
+                },
+
+                /* ===== DIALOG KONFIRMASI ===== */
+                askConfirm(opts) {
+                    this.confirmDlg = Object.assign({
+                        show: true, title: 'Konfirmasi', message: '', details: [],
+                        confirmText: 'Ya, Lanjutkan', cancelText: 'Batal', type: 'primary', action: null
+                    }, opts);
+                    this.$nextTick(() => { const b = this.$refs.confirmCancelBtn; if (b) b.focus(); });
+                },
+                confirmYes() {
+                    const fn = this.confirmDlg.action;
+                    this.confirmDlg.show = false;
+                    if (typeof fn === 'function') fn();
+                },
+                confirmNo() {
+                    this.confirmDlg.show = false;
+                },
+                confirmStyle(type) {
+                    const map = {
+                        danger:  { icon: 'bg-rose-100 text-rose-600',   fa: 'fa-solid fa-trash-can',            btn: 'bg-rose-600 hover:bg-rose-700' },
+                        warning: { icon: 'bg-amber-100 text-amber-600', fa: 'fa-solid fa-triangle-exclamation', btn: 'bg-amber-600 hover:bg-amber-700' },
+                        primary: { icon: 'bg-emerald-100 text-emerald-600', fa: 'fa-solid fa-floppy-disk',      btn: 'bg-emerald-600 hover:bg-emerald-700' }
+                    };
+                    return map[type] || map.primary;
+                },
+                summarizeChanges(list, max = 6) {
+                    const lines = list.slice(0, max).map(c => `${c.s.name}: ${c.diffs.join(', ')}`);
+                    if (list.length > max) lines.push(`…dan ${list.length - max} siswa lainnya`);
+                    return lines;
+                },
+
+                /* ===== DATA TERSIMPAN vs BELUM DISIMPAN ===== */
+                commitSaved() {
+                    this.savedStudents = JSON.parse(JSON.stringify(this.students));
+                    this.syncSnapshot();
+                },
+                markSaved(student) {
+                    const copy = JSON.parse(JSON.stringify(student));
+                    const i = this.savedStudents.findIndex(s => s.id === copy.id);
+                    if (i === -1) this.savedStudents.push(copy); else this.savedStudents[i] = copy;
+                },
+                // Siswa baru (tambah / import) langsung dianggap tersimpan; edit lain tetap menunggu persetujuan
+                commitNew() {
+                    this.students.forEach(s => {
+                        if (!this.savedStudents.some(x => x.id === s.id)) this.markSaved(s);
+                    });
+                    this.syncSnapshot();
+                },
+                savePending() {
+                    const list = this.pendingChanges;
+                    if (list.length === 0) return;
+                    if (list.some(c => c.invalid)) {
+                        this.pushToast({ title: 'Tidak Dapat Disimpan', message: 'Ada nilai di luar rentang 0–100. Perbaiki dahulu sebelum menyimpan.', type: 'error' });
+                        return;
+                    }
+                    this.askConfirm({
+                        type: 'primary',
+                        title: `Simpan ${list.length} perubahan?`,
+                        message: 'Periksa kembali perubahan berikut sebelum disimpan ke leger.',
+                        details: this.summarizeChanges(list),
+                        confirmText: 'Ya, Simpan',
+                        action: () => {
+                            this.commitSaved();
+                            this.pushToast({ title: 'Perubahan Disimpan', message: `${list.length} data siswa berhasil disimpan ke leger.`, type: 'success' });
+                        }
+                    });
+                },
+                revertPending() {
+                    const n = this.pendingChanges.length;
+                    if (n === 0) return;
+                    this.askConfirm({
+                        type: 'warning',
+                        title: 'Batalkan semua perubahan?',
+                        message: `${n} data siswa akan dikembalikan ke nilai terakhir yang disimpan.`,
+                        confirmText: 'Ya, Batalkan',
+                        cancelText: 'Kembali',
+                        action: () => {
+                            this.students = JSON.parse(JSON.stringify(this.savedStudents));
+                            this.syncSnapshot();
+                            this.pushToast({ title: 'Perubahan Dibatalkan', message: 'Data dikembalikan ke versi tersimpan.', type: 'info' });
+                        }
+                    });
+                },
+
+                /* ===== EDIT & HAPUS DENGAN PERSETUJUAN ===== */
+                saveStudentEdit() {
+                    if (!this.editingStudent) return;
+                    const edited = this.editingStudent;
+                    const index = this.students.findIndex(s => s.id === edited.id);
+                    if (index === -1) {
+                        this.students.push(JSON.parse(JSON.stringify(edited)));
+                        this.commitNew();
+                        this.showEditStudentModal = false;
+                        this.pushToast({ title: 'Siswa Ditambahkan', message: 'Siswa baru berhasil disimpan!', type: 'success' });
+                        return;
+                    }
+                    const clash = this.findClash(edited);
+                    if (clash) {
+                        this.pushToast({ title: 'Data Ganda', message: `"${edited.name}" bentrok dengan siswa "${clash.name}" (nama / NISN sama) di ${edited.kelas} pada ${edited.semester}. Ubah nama atau NISN terlebih dahulu.`, type: 'error', duration: 7000 });
+                        return;
+                    }
+                    const old = this.students[index];
+                    const { diffs, invalid } = this.diffStudent(old, edited);
+                    if (diffs.length === 0) {
+                        this.showEditStudentModal = false;
+                        this.pushToast({ title: 'Tidak Ada Perubahan', message: 'Data siswa tidak diubah.', type: 'info', log: false });
+                        return;
+                    }
+                    if (invalid) {
+                        this.pushToast({ title: 'Nilai di Luar Rentang', message: 'Nilai harus berada di antara 0 dan 100.', type: 'error' });
+                        return;
+                    }
+                    const naOld = this.calculateNA(old), naNew = this.calculateNA(edited);
+                    const details = diffs.slice();
+                    if (naOld !== naNew) details.push(`Nilai Akhir (NA): ${naOld} → ${naNew}`);
+                    this.askConfirm({
+                        type: 'primary',
+                        title: `Simpan perubahan data ${edited.name}?`,
+                        message: 'Perubahan berikut akan disimpan ke leger.',
+                        details,
+                        confirmText: 'Ya, Simpan',
+                        action: () => {
+                            const i = this.students.findIndex(s => s.id === edited.id);
+                            const copy = JSON.parse(JSON.stringify(edited));
+                            if (i !== -1) this.students[i] = copy; else this.students.push(copy);
+                            this.markSaved(copy);
+                            this.activeKelas = copy.kelas;
+                            this.syncSnapshot();
+                            this.showEditStudentModal = false;
+                            this.pushToast({ title: 'Perubahan Disimpan', message: `Data siswa ${copy.name} berhasil diperbarui${naOld !== naNew ? ` • NA ${naOld} → ${naNew}` : ''}`, type: 'success', key: 'edit-' + copy.id });
+                        }
+                    });
+                },
+                // Tutup form edit; minta konfirmasi jika ada isian yang belum disimpan
+                closeEditModal() {
+                    const orig = this.editingStudent && this.students.find(s => s.id === this.editingStudent.id);
+                    const dirty = orig && this.diffStudent(orig, this.editingStudent).diffs.length > 0;
+                    if (!dirty) { this.showEditStudentModal = false; return; }
+                    this.askConfirm({
+                        type: 'warning',
+                        title: 'Buang perubahan?',
+                        message: 'Ada isian yang belum disimpan. Jika ditutup, perubahan tersebut akan hilang.',
+                        confirmText: 'Ya, Buang',
+                        cancelText: 'Lanjut Mengedit',
+                        action: () => { this.showEditStudentModal = false; }
+                    });
+                },
+                requestDeleteStudent(student) {
+                    if (!student) return;
+                    this.askConfirm({
+                        type: 'danger',
+                        title: 'Hapus data siswa ini?',
+                        message: `${student.name} (${student.kelas}, NISN ${student.nisn || '-'}) beserta seluruh nilainya akan dihapus dari leger. Tindakan ini tidak dapat dibatalkan.`,
+                        confirmText: 'Ya, Hapus',
+                        action: () => {
+                            const backup = JSON.parse(JSON.stringify(student));
+                            this.students = this.students.filter(s => s.id !== student.id);
+                            this.savedStudents = this.savedStudents.filter(s => s.id !== student.id);
+                            this.syncSnapshot();
+                            this.showEditStudentModal = false;
+                            this.pushToast({
+                                title: 'Siswa Dihapus', message: `Siswa ${student.name} telah dihapus dari leger.`, type: 'error', duration: 9000,
+                                action: { label: 'Urungkan', fn: () => {
+                                    this.students.push(backup);
+                                    this.markSaved(backup);
+                                    this.syncSnapshot();
+                                    this.pushToast({ title: 'Penghapusan Diurungkan', message: `Siswa ${backup.name} berhasil dikembalikan.`, type: 'success' });
+                                } }
+                            });
+                        }
+                    });
+                },
+                handleAutoUpsert(student) {
+                    const clash = this.findClash(student);
+                    if (clash) {
+                        this.showToastMsg(`Perhatian: "${student.name}" sama dengan "${clash.name}" (nama / NISN) pada semester ini. Gunakan Gabungkan Data Ganda.`, 'warning');
+                    }
+                },
+                calculateNA(student) {
+                    if (!student || !student.scores) return '0.0';
+                    const sco = student.scores;
+                    let avg = (arr) => {
+                        let valid = arr.map(k => sco[k]).filter(v => v !== null && v !== undefined && v !== '');
+                        if (valid.length === 0) return 0;
+                        return valid.reduce((a, b) => Number(a) + Number(b), 0) / valid.length;
+                    };
+                    let rTP = avg(['tp1', 'tp2', 'tp3', 'tp4']);
+                    let rTS = avg(['ts1', 'ts2', 'ts3', 'ts4']);
+                    let rNP = avg(['np1', 'np2', 'np3', 'np4']);
+                    let vSTS = Number(sco.sts || 0);
+                    let vSAS = Number(sco.sas || 0);
+
+                    // bobot mengikuti kelas siswa (komponen berbobot 0% tidak ikut dihitung)
+                    const w = this.bobotByKelas[student.kelas] || defaultBobot(student.kelas);
+                    const totalWeight = Number(w.tp) + Number(w.ts) + Number(w.np) + Number(w.sts) + Number(w.sas);
+                    if (!totalWeight) return '0.0';
+                    const na = ((rTP * w.tp) + (rTS * w.ts) + (rNP * w.np) + (vSTS * w.sts) + (vSAS * w.sas)) / totalWeight;
+                    return na.toFixed(1);
+                },
+                getPredicate(na) {
+                    if (na === '-' || isNaN(na)) return '-';
+                    let num = parseFloat(na);
+                    if (num >= 90) return 'A';
+                    if (num >= 80) return 'B';
+                    if (num >= 70) return 'C';
+                    return 'D';
+                },
+                getPredicateClass(na) {
+                    let p = this.getPredicate(na);
+                    if (p === 'A') return 'text-emerald-600';
+                    if (p === 'B') return 'text-blue-600';
+                    if (p === 'C') return 'text-amber-600';
+                    return 'text-rose-600';
+                },
+                generateAutoNote(student) {
+                    let na = this.calculateNA(student);
+                    if (na === '0.0' || na === '-') return 'Belum ada penilaian.';
+                    let num = parseFloat(na);
+                    if (num >= 88) return 'Sangat baik dalam penguasaan kebugaran jasmani dan gerak dasar PJOK.';
+                    if (num >= 78) return 'Baik dalam menguasai kombinasi gerak dasar dan aktivitas olahraga.';
+                    if (num >= 70) return 'Cukup menguasai gerak dasar, perlu peningkatan pada koordinasi fisik.';
+                    return 'Memerlukan bimbingan ekstra dalam aktivitas gerak dan fisik.';
+                },
+                getClassAverage() {
+                    let list = this.currentClassStudents;
+                    if (list.length === 0) return '0.0';
+                    let sum = list.reduce((a, s) => a + parseFloat(this.calculateNA(s)), 0);
+                    return (sum / list.length).toFixed(1);
+                },
+                getCompletionRate() {
+                    let list = this.currentClassStudents;
+                    if (list.length === 0) return '0';
+                    let passed = list.filter(s => parseFloat(this.calculateNA(s)) >= this.kkmOf(this.activeKelas)).length;
+                    return Math.round((passed / list.length) * 100);
+                },
+                handleLogoUpload(event, key) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.kop[key] = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+                downloadPDF() {
+                    const element = document.getElementById('official-pdf-content');
+                    if (!element) return;
+                    
+                    const opt = {
+                        margin:       [8, 8, 8, 8],
+                        filename:     `Leger_PJOK_${this.previewMode === 'rekap' ? 'Semua_Kelas' : this.activeKelas.replace(/\s+/g, '_')}_Sem_${this.activeSemester.replace(/[^a-zA-Z0-9]/g, '')}.pdf`,
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        html2canvas:  { scale: 2, useCORS: true, logging: false },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                    };
+
+                    html2pdf().set(opt).from(element).save();
+                },
+                printPDF() {
+                    window.print();
+                },
+
+                saveGasUrl() {
+                    localStorage.setItem('pjok_gas_url', this.gasUrl);
+                    this.showToastMsg('URL Google Apps Script berhasil disimpan!');
+                },
+                pushDataToGas() {
+                    if (!this.gasUrl) return this.showToastMsg('Masukkan Web App URL terlebih dahulu.', 'error');
+                    this.isLoadingGas = true;
+                    fetch(this.gasUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ students: this.students })
+                    }).then(() => {
+                        this.isLoadingGas = false;
+                        this.showToastMsg('Data berhasil dikirim dan dipisahkan ke masing-masing Sheet Kelas!');
+                    }).catch(err => {
+                        this.isLoadingGas = false;
+                        this.showToastMsg('Gagal mengirim data: ' + err.toString(), 'error');
+                    });
+                },
+                pullDataFromGas() {
+                    if (!this.gasUrl) return this.showToastMsg('Masukkan Web App URL terlebih dahulu.', 'error');
+                    this.askConfirm({
+                        type: 'warning',
+                        title: 'Tarik data dari Google Sheets?',
+                        message: 'Seluruh data siswa di aplikasi akan DIGANTI dengan data dari Spreadsheet, termasuk perubahan yang belum disimpan.',
+                        confirmText: 'Ya, Tarik & Ganti',
+                        action: () => this.doPullDataFromGas()
+                    });
+                },
+                doPullDataFromGas() {
+                    this.isLoadingGas = true;
+                    fetch(this.gasUrl)
+                        .then(res => res.json())
+                        .then(res => {
+                            this.isLoadingGas = false;
+                            if (res.status === 'success' && Array.isArray(res.data)) {
+                                if (res.data.length === 0) return this.showToastMsg('Data di Spreadsheet masih kosong.', 'info');
+                                const map = {};
+                                let seq = 0;
+                                res.data.forEach(r => {
+                                    const kelas = r.kelas || 'Kelas 1';
+                                    // satu kelas + satu semester tidak boleh ada nama ganda
+                                    const key = kelas + '|' + (r.semester || '') + '|' + (nameKey(r.name) || ('n:' + nisnKey(r.nisn)));
+                                    if (map[key]) { if (!map[key].nisn && r.nisn) map[key].nisn = r.nisn; return; }
+                                    map[key] = { id: Date.now() + (seq++), kelas, semester: r.semester, nisn: r.nisn, name: r.name, gender: r.gender, scores: r.scores, catatan: r.catatan || '' };
+                                });
+                                this.students = Object.values(map).map(normalizeStudent);
+                                this.commitSaved();
+                                this.pushToast({ title: 'Sinkronisasi Berhasil', message: `${this.students.length} data siswa berhasil ditarik dari seluruh Sheet Kelas!`, type: 'info' });
+                            }
+                        }).catch(err => {
+                            this.isLoadingGas = false;
+                            this.showToastMsg('Gagal menarik data: ' + err.toString(), 'error');
+                        });
+                },
+                copyCodeGs() {
+                    navigator.clipboard.writeText(this.gasScriptCode);
+                    this.showToastMsg('Kode Code.gs berhasil disalin ke clipboard!');
+                },
+                exportToExcel() {
+                    const wb = XLSX.utils.book_new();
+                    const rekap = this.kelasSummary.map(k => ({
+                        Kelas: k.m.name, 'Jumlah Siswa': k.total, 'Sudah Dinilai': k.n,
+                        'Rata-rata': k.avg === null ? '' : Number(k.avg.toFixed(1)),
+                        Tertinggi: k.hi ? Number(k.hi.v.toFixed(1)) : '', Terendah: k.lo ? Number(k.lo.v.toFixed(1)) : '',
+                        KKM: k.kkm, Tuntas: k.n ? k.tuntas : '', 'Belum Tuntas': k.n ? k.belum : '',
+                        A: k.pred.A, B: k.pred.B, C: k.pred.C, D: k.pred.D,
+                        Bobot: `TP ${k.bobot.tp}% | TS ${k.bobot.ts}% | NP ${k.bobot.np}% | STS ${k.bobot.sts}% | SAS ${k.bobot.sas}%`
+                    }));
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rekap), 'Rekap');
+                    this.kelasList.forEach(k => {
+                        const list = this.semesterStudents.filter(s => s.kelas === k.id);
+                        if (!list.length) return;
+                        const b = this.bobotByKelas[k.id] || defaultBobot(k.id);
+                        const data = list.map((s, i) => {
+                            const o = { No: i + 1, NISN: s.nisn, Nama: s.name, 'L/P': s.gender };
+                            this.masterColumns.forEach(c => {
+                                if (!(Number(b[c.key.replace(/\d+$/, '')]) > 0)) return;
+                                const v = s.scores[c.key];
+                                o[c.short] = v === null || v === undefined ? '' : v;
+                            });
+                            const na = this.calculateNA(s);
+                            o['NA'] = Number(na);
+                            o['Predikat'] = this.getPredicate(na);
+                            o['Keterangan'] = this.hasScores(s) ? (Number(na) >= this.kkmOf(k.id) ? 'Tuntas' : 'Belum Tuntas') : '';
+                            o['Catatan'] = s.catatan || this.generateAutoNote(s);
+                            return o;
+                        });
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), k.name);
+                    });
+                    XLSX.writeFile(wb, `Leger_PJOK_${this.activeSemester.replace(/[^a-zA-Z0-9]/g, '')}.xlsx`);
+                },
+                importFromExcel(e) {
+                    const input = e.target;
+                    const file = input.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            const wb = XLSX.read(evt.target.result, { type: 'binary' });
+                            const ws = wb.Sheets[wb.SheetNames[0]];
+                            const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                            // Ambil kolom tanpa peduli huruf besar/kecil: NISN, Nama, Gender / L/P
+                            const pick = (r, names) => {
+                                const keys = Object.keys(r).filter(x => names.includes(String(x).trim().toLowerCase()));
+                                const k = keys.find(x => String(r[x]).trim() !== '') || keys[0];
+                                return k === undefined ? '' : r[k];
+                            };
+                            const cleanNisn = v => String(v === null || v === undefined ? '' : v).replace(/\s+/g, '').replace(/^'+/, '');
+                            const keyNisn = nisnKey, keyName = nameKey;
+
+                            const pool = this.students.filter(s => s.semester === this.activeSemester && s.kelas === this.activeKelas);
+                            const skipped = [];
+                            let added = 0, filled = 0;
+
+                            rows.forEach(r => {
+                                const rawName = String(pick(r, ['nama', 'nama siswa', 'name'])).trim();
+                                const nisn = cleanNisn(pick(r, ['nisn', 'nis', 'no. induk']));
+                                if (!rawName && !nisn) return;
+                                const g = String(pick(r, ['gender', 'l/p', 'jk', 'jenis kelamin'])).trim().toUpperCase();
+                                const gender = g.startsWith('P') ? 'P' : 'L';
+                                const nName = keyName(rawName);
+
+                                // Duplikat jika NAMA sama (satu semester tidak boleh ada nama ganda) atau NISN sama
+                                const dup = pool.find(s =>
+                                    (nName !== '' && keyName(s.name) === nName) ||
+                                    (keyNisn(nisn) !== '' && keyNisn(s.nisn) === keyNisn(nisn)));
+                                if (dup) {
+                                    if (!cleanNisn(dup.nisn) && nisn) { dup.nisn = nisn; filled++; }
+                                    skipped.push(rawName || nisn);
+                                    return;
+                                }
+
+                                const st = normalizeStudent({ id: Date.now() + Math.random(), kelas: this.activeKelas, semester: this.activeSemester, nisn, name: rawName || 'Siswa Import', gender });
+                                this.students.push(st);
+                                pool.push(st);
+                                added++;
+                            });
+
+                            this.commitNew();
+                            const parts = [`${added} siswa ditambahkan`];
+                            if (skipped.length) parts.push(`${skipped.length} nama/NISN sudah ada di ${this.activeKelas} ${this.activeSemester} (dilewati: ${skipped.slice(0, 3).join(', ')}${skipped.length > 3 ? ', …' : ''})`);
+                            if (filled) parts.push(`${filled} NISN kosong dilengkapi`);
+                            this.pushToast({
+                                title: added || filled ? 'Import Selesai' : 'Tidak Ada Data Baru',
+                                message: parts.join(' • ') + '.',
+                                type: filled ? 'warning' : (added ? 'success' : 'info'),
+                                duration: 10000
+                            });
+                        } catch (err) {
+                            this.pushToast({ title: 'Import Gagal', message: 'File tidak dapat dibaca: ' + err.toString(), type: 'error' });
+                        }
+                        input.value = ''; // izinkan memilih file yang sama lagi
+                    };
+                    reader.readAsBinaryString(file);
+                }
+            },
+            watch: {
+                savedStudents: { deep: true, handler() { this.persistStudents(); } },
+                kelasList: { deep: true, handler() { this.persistSettings(); } },
+                // Setiap perubahan nilai / identitas / catatan siswa (langsung di tabel) → notifikasi
+                students: {
+                    deep: true,
+                    handler() { if (this.loadingStore) return; this.scheduleCheck('students', () => this.detectStudentChanges()); }
+                },
+                bobotByKelas: {
+                    deep: true,
+                    handler() {
+                        if (this.loadingStore) return;
+                        this.persistSettings();
+                        this.scheduleCheck('bobot', () => {
+                            const ok = this.totalBobot === 100;
+                            this.pushToast({
+                                title: ok ? `Bobot ${this.activeKelas} Diperbarui` : `Total Bobot ${this.activeKelas} Belum 100%`,
+                                message: `TP ${this.bobot.tp}% • TS ${this.bobot.ts}% • NP ${this.bobot.np}% • STS ${this.bobot.sts}% • SAS ${this.bobot.sas}% (Total ${this.totalBobot}%)`,
+                                type: ok ? 'change' : 'warning', key: 'bobot'
+                            });
+                        }, 900);
+                    }
+                },
+                kop: {
+                    deep: true,
+                    handler() { if (this.loadingStore) return; this.persistSettings(); this.scheduleCheck('kop', () => this.pushToast({ title: 'Kop Sekolah Diperbarui', message: 'Perubahan identitas kop & logo tersimpan di dokumen leger.', type: 'change', key: 'kop' }), 900); }
+                },
+                ttd: {
+                    deep: true,
+                    handler() { if (this.loadingStore) return; this.persistSettings(); this.scheduleCheck('ttd', () => this.pushToast({ title: 'Data Tanda Tangan Diperbarui', message: 'Perubahan titimangsa / TTD diterapkan pada dokumen leger.', type: 'change', key: 'ttd' }), 900); }
+                }
+            },
+            mounted() {
+                let savedUrl = localStorage.getItem('pjok_gas_url');
+                if (savedUrl) this.gasUrl = savedUrl;
+                this.loadingStore = true;
+                const restored = this.loadStored();
+                this.commitSaved();
+                this.$nextTick(() => {
+                    this.loadingStore = false;
+                    if (restored) this.pushToast({ title: 'Data Dipulihkan', message: `${this.students.length} data siswa dimuat dari penyimpanan browser.`, type: 'info', log: false });
+                });
+                // Esc menutup dialog konfirmasi
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.confirmDlg.show) this.confirmNo();
+                });
+                // Peringatan jika menutup halaman saat masih ada perubahan belum disimpan
+                window.addEventListener('beforeunload', (e) => {
+                    if (this.pendingChanges.length > 0) { e.preventDefault(); e.returnValue = ''; }
+                });
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
